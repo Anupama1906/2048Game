@@ -1,13 +1,8 @@
-// src/data/levels.ts
 import type { Level, StationaryCell } from "../types/types";
 
 // --- HELPERS ---
-
-// Short helper for Stationary tiles
 const S = (val: number): StationaryCell => ({ type: 'stationary', value: val });
 
-// Helper to define a section. 
-// It automatically adds the "section" property to every level in the list.
 const createSection = (sectionName: string, levels: Omit<Level, 'section'>[]): Level[] => {
     return levels.map(level => ({
         ...level,
@@ -21,8 +16,9 @@ const BASICS = createSection("Basics", [
     {
         id: 'basics-1',
         target: 4,
-        name: "The Basics",
+        name: "First Steps",
         description: "Combine the 2s to reach 4. Use arrows to move tiles.",
+        par: 2, // Easy: Just 1 move needed
         grid: [
             [2, 0],
             [0, 2],
@@ -31,8 +27,9 @@ const BASICS = createSection("Basics", [
     {
         id: 'basics-2',
         target: 16,
-        name: "The Cross",
+        name: "Merge Away",
         description: "Merge similar numbers to reach the desired target.",
+        par: 6, // Challenge: Do it efficiently
         grid: [
             [2, 0, 0, 2],
             [0, 2, 2, 0],
@@ -45,11 +42,25 @@ const BASICS = createSection("Basics", [
         target: 2048,
         name: "Chain",
         description: "Merge numbers to reach larger numbers.",
+        par: 4,
         grid: [
             [2, 2, 4, 8],
             ["W", "W", "W", 16],
             [1024, "W", "W", 32],
             [512, 256, 128, 64]
+        ]
+    },
+    {
+        id: 'basics-4',
+        target: 32,
+        name: "Combinations",
+        description: "Try to reach the goal with few moves.",
+        par: 10,
+        grid: [
+            [2, 4, 4, 2],
+            [2, 4, 4, 2],
+            [4, 2, 2, 4],
+            [4, 2, 2, 4],
         ]
     },
 ]);
@@ -59,7 +70,8 @@ const STRATEGIES = createSection("Strategies", [
         id: 'strat-1',
         target: 16,
         name: "The Corridor",
-        description: "Walls block your movement. Plan ahead.",
+        description: "Plan Carefully. Use undo if you got stuck.",
+        par: 8,
         grid: [
             ['W', 0, 0, 'W'],
             [4, 2, 2, 4],
@@ -69,20 +81,17 @@ const STRATEGIES = createSection("Strategies", [
     },
     {
         id: 'strat-2',
-        target: 32,
+        target: 16,
         name: "Cornered",
-        description: "Get the 32. Don't get stuck in the corners.",
+        description: "Order matters.",
+        par: 5,
         grid: [
-            [2, 2, 4, 8, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0]
+            [2, 2, 0, 2],
+            [8, 2, 'W', 'W'],
+            [0, 'W', 'W', 'W'],
+            [0, 'W', 'W', 'W']
         ],
-        thinWalls: {
-            vertical: [[0, 0]],
-            horizontal: [[0, 2]]
-        }
+
     }
 ]);
 
@@ -124,7 +133,11 @@ const EXPERT = createSection("Expert", [
             [0, 0, 0, 64],
             [0, 0, 0, 32],
             ['W', 'W', 'W', 32]
-        ]
+        ],
+        thinWalls: {
+            vertical: [[0, 0]],
+            horizontal: [[0, 2]]
+        }
     }
 ]);
 
@@ -143,8 +156,6 @@ const MECHANICS = createSection("Mechanics", [
     }
 ]);
 
-// --- EXPORT ---
-// Combine all sections here. The order here determines the order in the menu.
 export const INITIAL_LEVELS: Level[] = [
     ...BASICS,
     ...STRATEGIES,

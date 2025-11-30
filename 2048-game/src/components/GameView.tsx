@@ -1,5 +1,6 @@
+// src/components/GameView.tsx
 import React, { useEffect, useRef, useState } from 'react';
-import { RotateCcw, ChevronRight, Sparkles, BrainCircuit, X, Loader2, Trophy, Lock, RefreshCw} from 'lucide-react';
+import { RotateCcw, ChevronRight, Sparkles, BrainCircuit, X, Loader2, Trophy, Lock, RefreshCw, Star } from 'lucide-react';
 import type { Level, Cell } from '../types/types';
 import { TILE_COLORS } from '../constants/theme';
 import { WALL } from '../constants/game';
@@ -8,11 +9,12 @@ import { callGemini } from '../utils/utils';
 
 interface GameViewProps {
     level: Level;
+    bestScore?: number; // Added Prop
     onBack: () => void;
-    onComplete: () => void;
+    onComplete: (moves: number) => void;
 }
 
-const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
+const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplete }) => {
     // 1. Use the Hook
     const { grid, gameState, move, undo, reset, canUndo, moves } = useGame(level);
 
@@ -25,7 +27,7 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
     const touchEnd = useRef<{ x: number; y: number } | null>(null);
     const boardSize = level.grid.length;
 
-    // Keyboard Controls
+    // ... (Keep existing Keyboard and Touch handlers exactly as they were) ...
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (showHintModal) return;
@@ -40,7 +42,6 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [move, showHintModal]);
 
-    // Touch Controls
     const onTouchStart = (e: React.TouchEvent) => {
         touchEnd.current = null;
         touchStart.current = { x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY }
@@ -53,6 +54,7 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) { dx > 0 ? move('LEFT') : move('RIGHT'); }
         else if (Math.abs(dy) > 30) { dy > 0 ? move('UP') : move('DOWN'); }
     }
+    // ... (End of controls) ...
 
     const handleAiHint = async () => {
         setAiResponse("");
@@ -72,49 +74,33 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
     const cellPct = 100 / boardSize;
     const gapRem = 0.75;
 
-    // Helper to calculate dynamic font size
     const getFontSize = (val: number) => {
         const len = val.toString().length;
-
-        // Huge tiles (3x3 or smaller)
         if (boardSize <= 3) return len > 3 ? 'text-4xl' : 'text-5xl';
-
-        // Standard tiles (4x4)
         if (boardSize === 4) return len > 3 ? 'text-3xl' : 'text-4xl';
-
-        // Small tiles (5x5)
         if (boardSize === 5) return len > 3 ? 'text-xl' : 'text-2xl';
-
-        // Tiny tiles (6x6+)
         return len > 3 ? 'text-xs' : 'text-sm';
     };
 
     const Tile = ({ value }: { value: Cell }) => {
         if (value === 0) return <div className="w-full h-full rounded-lg bg-gray-200/50 dark:bg-gray-700/50" />;
-
         if (value === WALL) return (
             <div className="w-full h-full rounded-lg bg-slate-700 shadow-inner flex items-center justify-center border-4 border-slate-800 dark:border-slate-900">
                 <Lock className="text-slate-500 w-6 h-6" />
             </div>
         );
-
         let displayValue: number;
         let isStationary = false;
-
         if (typeof value === 'object') {
             displayValue = value.value;
             isStationary = true;
         } else {
             displayValue = value;
         }
-
         const fontSizeClass = getFontSize(displayValue);
-
-        // Stationary styling: Distinct border/ring
         const stationaryStyle = isStationary
             ? "border-4 border-slate-400 dark:border-slate-500 ring-2 ring-slate-200 dark:ring-slate-700 z-10"
             : "";
-
         return (
             <div className={`w-full h-full rounded-lg ${TILE_COLORS[displayValue] || 'bg-gray-900 text-white'} ${stationaryStyle} shadow-sm flex items-center justify-center font-bold ${fontSizeClass} select-none animate-in zoom-in duration-200 relative overflow-hidden`}>
                 {displayValue}
@@ -129,7 +115,7 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
 
     return (
         <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto h-full min-h-[500px]">
-            {/* Hint Modal (UI Only) */}
+            {/* Hint Modal ... (Keep unchanged) */}
             {showHintModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 relative">
@@ -153,11 +139,25 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
                     <ChevronRight className="rotate-180" size={20} /> <span className="text-sm font-bold">Back</span>
                 </button>
 
-                <div className="flex gap-6">
+                <div className="flex gap-4 md:gap-8">
+                    {/* Moves */}
                     <div className="text-right">
                         <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Moves</div>
                         <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{moves}</div>
                     </div>
+
+                    {/* Best Score (New) */}
+                    <div className="text-right">
+                        <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1 justify-end">
+                            Best
+                            {level.par && bestScore && bestScore <= level.par && <Star size={10} className="fill-yellow-400 text-yellow-400" />}
+                        </div>
+                        <div className="text-xl font-bold text-slate-700 dark:text-slate-200">
+                            {bestScore !== undefined ? bestScore : '-'}
+                        </div>
+                    </div>
+
+                    {/* Target */}
                     <div className="text-right">
                         <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Target</div>
                         <div className="text-xl font-bold text-orange-600 dark:text-orange-400">{level.target}</div>
@@ -179,8 +179,7 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
                     {grid.map((row, r) => row.map((cell, c) => (
                         <div key={`${r}-${c}`} className="relative w-full h-full"><Tile value={cell} /></div>
                     )))}
-
-                    {/* Thin Walls Rendering */}
+                    {/* Walls Rendering... (Keep unchanged) */}
                     {level.thinWalls?.vertical?.map(([r, c], i) => (
                         <div key={`v-${i}`} className="absolute bg-slate-800 dark:bg-slate-200 rounded-full z-10 shadow-sm"
                             style={{ width: '6px', height: `calc(${cellPct}% - 1.25*${gapRem}rem)`, top: `calc(${r * cellPct}% + ${gapRem / 2}rem)`, left: `calc(${(c + 1) * cellPct}% - ${gapRem / 2}rem )` }} />
@@ -199,7 +198,7 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
                                 <Trophy size={64} className="text-yellow-500 mb-4" />
                                 <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">Solved!</h2>
                                 <p className="text-slate-500 dark:text-slate-400 mb-4 font-medium">in {moves} moves</p>
-                                <button onClick={onComplete} className="mt-2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105">
+                                <button onClick={() => onComplete(moves)} className="mt-2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105">
                                     Next Level
                                 </button>
                             </>

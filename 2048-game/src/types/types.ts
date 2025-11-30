@@ -16,6 +16,7 @@ export interface Level {
     name: string;
     description: string;
     section?: string;
+    par?: number;
     grid: (number | 'W' | 'WALL' | 0 | StationaryCell)[][]; // Fixed: Now correctly a 2D array
     thinWalls?: {
         vertical: [number, number][];   // [row, col] -> Wall is to the RIGHT of this cell
