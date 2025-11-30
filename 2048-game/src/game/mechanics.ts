@@ -1,4 +1,3 @@
-// src/game/mechanics.ts
 import type { Cell, StationaryCell, GeneratorCell } from '../types/types';
 import { WALL } from '../constants/game';
 
@@ -49,11 +48,19 @@ export const isHardObstacle = (cell: Cell): boolean => {
     return cell === WALL || isGenerator(cell);
 };
 
+// Internal Interface for processing with metadata
+interface ProcessResult {
+    grid: Cell[];
+    merged: boolean[]; // Tracks if a tile at index i was created by a merge in this step
+}
+
 /**
  * Standard 2048 Logic - slides tiles left and merges
+ * Returns metadata about which tiles were merged
  */
-const slideAndMergeSimple = (tiles: Cell[]): Cell[] => {
+const slideAndMergeWithStatus = (tiles: Cell[]): ProcessResult => {
     let result: Cell[] = [];
+    let mergedFlags: boolean[] = [];
     let i = 0;
 
     while (i < tiles.length) {
@@ -64,63 +71,97 @@ const slideAndMergeSimple = (tiles: Cell[]): Cell[] => {
             // Merge the two tiles
             const valA = getCellValue(current);
             const valB = getCellValue(next);
-            const merged = getMergeResult(valA, valB);
+            const mergedVal = getMergeResult(valA, valB);
 
             // Only add to result if it didn't cancel out to 0
-            if (merged !== 0) {
-                result.push(merged);
+            if (mergedVal !== 0) {
+                result.push(mergedVal);
+                mergedFlags.push(true); // Mark as newly merged
             }
 
             i += 2; // Skip both tiles
         } else {
             // No merge, just add current
             result.push(current);
+            mergedFlags.push(false); // Existing tile slid
             i += 1;
         }
     }
 
-    return result;
+    return { grid: result, merged: mergedFlags };
 };
 
 /**
  * Process a chunk that may contain stationary tiles
  */
-const processChunkWithStationary = (chunk: Cell[]): Cell[] => {
+const processChunkWithStatus = (chunk: Cell[]): ProcessResult => {
     const firstStatIdx = chunk.findIndex(c => isStationary(c));
 
     if (firstStatIdx === -1) {
         const movable = chunk.filter(c => getCellValue(c) !== 0);
-        const processed = slideAndMergeSimple(movable);
-        while (processed.length < chunk.length) processed.push(0);
-        return processed;
+        const { grid, merged } = slideAndMergeWithStatus(movable);
+
+        // Pad with zeros to restore length
+        const finalGrid = [...grid];
+        const finalMerged = [...merged];
+        while (finalGrid.length < chunk.length) {
+            finalGrid.push(0);
+            finalMerged.push(false);
+        }
+        return { grid: finalGrid, merged: finalMerged };
     }
 
     const stationaryCell = chunk[firstStatIdx] as StationaryCell;
     const leftPart = chunk.slice(0, firstStatIdx);
     const rightPart = chunk.slice(firstStatIdx + 1);
 
+    // 1. Process Left Side
     const leftMovable = leftPart.filter(c => getCellValue(c) !== 0);
-    let leftResult = slideAndMergeSimple(leftMovable);
-    while (leftResult.length < leftPart.length) leftResult.push(0);
+    const leftRes = slideAndMergeWithStatus(leftMovable);
+    const leftGrid = [...leftRes.grid];
+    const leftMerged = [...leftRes.merged];
+    while (leftGrid.length < leftPart.length) {
+        leftGrid.push(0);
+        leftMerged.push(false);
+    }
 
-    const rightResult = processChunkWithStationary(rightPart);
+    // 2. Process Right Side (Recursively)
+    const rightRes = processChunkWithStatus(rightPart);
 
-    const incomingTileIdx = rightResult.findIndex(c => getCellValue(c) !== 0);
-    const incomingTile = incomingTileIdx !== -1 ? rightResult[incomingTileIdx] : 0;
+    // 3. Check interaction between Right Side and Stationary Cell
+    const incomingTileIdx = rightRes.grid.findIndex(c => getCellValue(c) !== 0);
+    const incomingTile = incomingTileIdx !== -1 ? rightRes.grid[incomingTileIdx] : 0;
+    const isIncomingMerged = incomingTileIdx !== -1 ? rightRes.merged[incomingTileIdx] : false;
 
-    if (incomingTile !== 0 && canMerge(incomingTile, stationaryCell)) {
+    // Check if we can merge the incoming tile into the stationary one
+    // CRITICAL FIX: Do NOT merge if the incoming tile was *already* merged in this step.
+    if (incomingTile !== 0 &&
+        !isStationary(incomingTile) &&
+        !isIncomingMerged && // <--- Prevents double merge (e.g. 4+4=8, then 8+s(8)=16 in one move)
+        canMerge(incomingTile, stationaryCell)) {
+
         const valIn = getCellValue(incomingTile);
         const valStat = getCellValue(stationaryCell);
         const mergedValue = getMergeResult(valIn, valStat);
 
-        const rightRemainder = [...rightResult];
-        rightRemainder[incomingTileIdx] = 0;
+        // Remove incoming tile from right side (it merged into stationary position)
+        const rightRemainderGrid = [...rightRes.grid];
+        rightRemainderGrid[incomingTileIdx] = 0; // Replace with empty space
 
-        // If mergedValue is 0 (cancelled), it acts as an empty space (0) in the sequence
-        const newSequence = [...leftResult, mergedValue, ...rightRemainder];
-        return processChunkWithStationary(newSequence);
+        // Re-compact the right side to fill the gap
+        // Since we are in a "slide" phase, holes should be filled immediately
+        const compactedRight = processChunkWithStatus(rightRemainderGrid);
+
+        return {
+            grid: [...leftGrid, mergedValue, ...compactedRight.grid],
+            merged: [...leftMerged, true, ...compactedRight.merged] // stationary slot is now "merged"
+        };
     } else {
-        return [...leftResult, stationaryCell, ...rightResult];
+        // No merge with stationary (either blocked, mismatch, or incoming was already merged)
+        return {
+            grid: [...leftGrid, stationaryCell, ...rightRes.grid],
+            merged: [...leftMerged, false, ...rightRes.merged]
+        };
     }
 };
 
@@ -140,7 +181,9 @@ export const processRow = (line: Cell[]): Cell[] => {
                 processingInput.push(cell.value);
             }
 
-            let processed = processChunkWithStationary(processingInput);
+            // Process the buffer (chunk)
+            let processedRes = processChunkWithStatus(processingInput);
+            let processed = processedRes.grid;
 
             const fitted = processed.slice(0, buffer.length);
             while (fitted.length < buffer.length) fitted.push(0);
@@ -154,7 +197,8 @@ export const processRow = (line: Cell[]): Cell[] => {
     }
 
     if (buffer.length > 0) {
-        let processed = processChunkWithStationary(buffer);
+        let processedRes = processChunkWithStatus(buffer);
+        let processed = processedRes.grid;
         while (processed.length < buffer.length) processed.push(0);
         result.push(...processed);
     }

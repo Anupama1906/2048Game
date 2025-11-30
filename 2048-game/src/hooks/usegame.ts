@@ -31,12 +31,19 @@ export const useGame = (level: Level) => {
 
             // Check Win/Loss conditions
             // 1. Check Win (Target reached)
-            let maxVal = 0;
-            result.grid.flat().forEach((c: Cell) => {
-                const val = getCellValue(c);
-                if (val > maxVal) maxVal = val;
-            });
-            if (maxVal >= level.target) {
+            let hasWon = false;
+            const allValues = result.grid.flat().map(c => getCellValue(c));
+
+            if (level.target > 0) {
+                // Positive Target: Reach target or higher (e.g. 2048 -> 4096 is a win)
+                if (allValues.some(v => v >= level.target)) hasWon = true;
+            } else {
+                // Negative Target: Reach target or lower (e.g. -4 -> -8 is a win)
+                // Note: -8 is "smaller" than -4, so check <=
+                if (allValues.some(v => v <= level.target && v !== 0)) hasWon = true;
+            }
+
+            if (hasWon) {
                 setGameState('won');
                 return;
             }

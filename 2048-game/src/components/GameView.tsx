@@ -194,11 +194,12 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
             </div>
 
             {/* Board Container */}
-            {/* FIX 3: Removed 'aspect-square' to allow rectangular aspect ratios */}
-            <div className="relative bg-slate-300 dark:bg-slate-700 p-3 rounded-xl shadow-xl w-full mb-6 touch-none"
+            {/* FIX 3: Added flex center and min-height to ensure overlay fits even if grid is small */}
+            <div className="relative bg-slate-300 dark:bg-slate-700 p-3 rounded-xl shadow-xl w-full mb-6 touch-none flex flex-col items-center justify-center min-h-[320px]"
                 onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
 
-                <div className="grid gap-3 w-full h-full relative z-0"
+                {/* Grid Div: Removed h-full so it takes natural height from aspect ratio, while container stretches */}
+                <div className="grid gap-3 w-full relative z-0"
                     style={{
                         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
                         gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
