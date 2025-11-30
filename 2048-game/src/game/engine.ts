@@ -9,9 +9,7 @@ export interface MoveResult {
     scoreDelta: number;
 }
 
-/**
- * Expands a row to include thin walls as pseudo-cells (WALL)
- */
+// ... (expandRowWithWalls and contractRow remain the same) ...
 const expandRowWithWalls = (row: Cell[], wallMapRow: boolean[]): Cell[] => {
     const expanded: Cell[] = [];
     for (let i = 0; i < row.length; i++) {
@@ -23,9 +21,6 @@ const expandRowWithWalls = (row: Cell[], wallMapRow: boolean[]): Cell[] => {
     return expanded;
 };
 
-/**
- * Contracts the row back to normal size
- */
 const contractRow = (processedRow: Cell[], wallMapRow: boolean[], originalLength: number): Cell[] => {
     const finalRow: Cell[] = [];
     let sourceIndex = 0;
@@ -40,36 +35,50 @@ const contractRow = (processedRow: Cell[], wallMapRow: boolean[], originalLength
     return finalRow;
 };
 
-/**
- * Main Move Function
- */
 export const moveGrid = (grid: Grid, direction: Direction, level: Level): MoveResult => {
-    const size = grid.length;
-    let workingGrid = GridOps.cloneGrid(grid);
-
     // 1. Orient the board so we are always moving LEFT
     let rotations = 0;
     if (direction === 'UP') rotations = 3;    // 270deg CW
     if (direction === 'RIGHT') rotations = 2; // 180deg CW
     if (direction === 'DOWN') rotations = 1;  // 90deg CW
 
-    // Rotate Grid
-    for (let i = 0; i < rotations; i++) workingGrid = GridOps.rotateGrid(workingGrid);
+    let workingGrid = GridOps.cloneGrid(grid);
 
-    // 2. Prepare Thin Walls for this orientation
-    let vWalls = GridOps.createWallMap(level.thinWalls?.vertical, size);
-    let hWalls = GridOps.createWallMap(level.thinWalls?.horizontal, size);
+    // Initial dimensions
+    let currentRows = workingGrid.length;
+    let currentCols = workingGrid[0].length;
+
+    // Rotate Grid and track dimensions
+    for (let i = 0; i < rotations; i++) {
+        workingGrid = GridOps.rotateGrid(workingGrid);
+        // Swap dimensions after rotation
+        const temp = currentRows;
+        currentRows = currentCols;
+        currentCols = temp;
+    }
+
+    // 2. Prepare Thin Walls
+    // Note: We start with original level dimensions
+    let vWalls = GridOps.createWallMap(level.thinWalls?.vertical, grid.length, grid[0].length);
+    let hWalls = GridOps.createWallMap(level.thinWalls?.horizontal, grid.length, grid[0].length);
+
+    let wRows = grid.length;
+    let wCols = grid[0].length;
 
     // Rotate Walls iteratively to match the grid
     for (let i = 0; i < rotations; i++) {
-        const rotated = rotateWallsData(vWalls, hWalls, size);
+        const rotated = rotateWallsData(vWalls, hWalls, wRows, wCols);
         vWalls = rotated.v;
         hWalls = rotated.h;
+        // Swap wall dimensions
+        const temp = wRows;
+        wRows = wCols;
+        wCols = temp;
     }
 
     // 3. Process Logic (Always Slide Left)
     let moved = false;
-    for (let r = 0; r < size; r++) {
+    for (let r = 0; r < currentRows; r++) {
         const originalRow = workingGrid[r];
         const activeWalls = vWalls[r]; // Walls blocking horizontal movement in this row
 
@@ -78,7 +87,7 @@ export const moveGrid = (grid: Grid, direction: Direction, level: Level): MoveRe
         // B. Mechanics
         const processedExpanded = Mechanics.processRow(expanded);
         // C. Contract
-        const finalRow = contractRow(processedExpanded, activeWalls, size);
+        const finalRow = contractRow(processedExpanded, activeWalls, currentCols);
 
         if (!GridOps.areGridsEqual([originalRow], [finalRow])) {
             moved = true;
@@ -88,7 +97,9 @@ export const moveGrid = (grid: Grid, direction: Direction, level: Level): MoveRe
 
     // 4. Restore Orientation
     const restoreRotations = (4 - rotations) % 4;
-    for (let i = 0; i < restoreRotations; i++) workingGrid = GridOps.rotateGrid(workingGrid);
+    for (let i = 0; i < restoreRotations; i++) {
+        workingGrid = GridOps.rotateGrid(workingGrid);
+    }
 
     return {
         grid: workingGrid,
@@ -97,9 +108,6 @@ export const moveGrid = (grid: Grid, direction: Direction, level: Level): MoveRe
     };
 };
 
-/**
- * Check if any move is possible
- */
 export const canMove = (grid: Grid, level: Level): boolean => {
     const dirs: Direction[] = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
     for (const dir of dirs) {
@@ -109,33 +117,32 @@ export const canMove = (grid: Grid, level: Level): boolean => {
     return false;
 };
 
-// Helper for wall rotation (90 degrees Clockwise)
-const rotateWallsData = (v: boolean[][], h: boolean[][], size: number) => {
-    const newV = Array(size).fill(null).map(() => Array(size).fill(false));
-    const newH = Array(size).fill(null).map(() => Array(size).fill(false));
+// Updated Helper for wall rotation to handle MxN
+const rotateWallsData = (v: boolean[][], h: boolean[][], rows: number, cols: number) => {
+    // New dimensions will be cols x rows
+    const newV = Array(cols).fill(null).map(() => Array(rows).fill(false));
+    const newH = Array(cols).fill(null).map(() => Array(rows).fill(false));
 
-    for (let r = 0; r < size; r++) {
-        for (let c = 0; c < size; c++) {
-
-            // 1. Vertical Wall at (r,c) -> Right of cell (r,c)
-            // Becomes Horizontal Wall -> Below cell (c, size-1-r)
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            // 1. Vertical Wall at (r,c) [Right of cell]
+            // Becomes Horizontal Wall -> Below cell (c, rows-1-r)
             if (v[r][c]) {
                 const newR = c;
-                const newC = size - 1 - r;
-                if (newR < size && newC < size) {
+                const newC = rows - 1 - r;
+                if (newR < cols && newC < rows) {
                     newH[newR][newC] = true;
                 }
             }
 
-            // 2. Horizontal Wall at (r,c) -> Below cell (r,c)
-            // Becomes Vertical Wall -> Right of cell (c, size-2-r)
+            // 2. Horizontal Wall at (r,c) [Below cell]
+            // Becomes Vertical Wall -> Right of cell (c, rows-2-r)
             // Logic: Wall was between rows r and r+1.
-            // Rotated: Between cols (size-1-r) and (size-2-r).
-            // This corresponds to "Right of cell (c, size-2-r)".
+            // Rotated: Between cols (rows-1-r) and (rows-2-r).
             if (h[r][c]) {
                 const newR = c;
-                const newC = size - 2 - r;
-                if (newR < size && newC >= 0 && newC < size) {
+                const newC = rows - 2 - r;
+                if (newR < cols && newC >= 0 && newC < rows) {
                     newV[newR][newC] = true;
                 }
             }

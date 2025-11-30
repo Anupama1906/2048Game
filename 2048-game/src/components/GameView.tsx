@@ -25,7 +25,14 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
 
     const touchStart = useRef<{ x: number; y: number } | null>(null);
     const touchEnd = useRef<{ x: number; y: number } | null>(null);
-    const boardSize = level.grid.length;
+
+    // FIX 1: Ensure rows/cols are never 0 (fallback to level data if hook hasn't loaded yet)
+    const currentGrid = grid.length > 0 ? grid : level.grid;
+    const rows = currentGrid.length;
+    const cols = currentGrid[0]?.length || 0;
+
+    // FIX 2: Define boardSize for font scaling logic
+    const boardSize = Math.max(rows, cols);
 
     // Controls
     useEffect(() => {
@@ -70,7 +77,8 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
     };
 
     // Render Helpers
-    const cellPct = 100 / boardSize;
+    const cellWidthPct = 100 / cols;
+    const cellHeightPct = 100 / rows;
     const gapRem = 0.75;
 
     const getFontSize = (val: number) => {
@@ -185,23 +193,41 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
                 <p className="text-slate-500 dark:text-slate-400 text-sm">{level.description}</p>
             </div>
 
-            {/* Board */}
-            <div className="relative bg-slate-300 dark:bg-slate-700 p-3 rounded-xl shadow-xl w-full aspect-square mb-6"
+            {/* Board Container */}
+            {/* FIX 3: Removed 'aspect-square' to allow rectangular aspect ratios */}
+            <div className="relative bg-slate-300 dark:bg-slate-700 p-3 rounded-xl shadow-xl w-full mb-6"
                 onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
 
                 <div className="grid gap-3 w-full h-full relative z-0"
-                    style={{ gridTemplateColumns: `repeat(${boardSize}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${boardSize}, minmax(0, 1fr))` }}>
+                    style={{
+                        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                        gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+                        aspectRatio: `${cols}/${rows}` // Keeps cells square
+                    }}>
                     {grid.map((row, r) => row.map((cell, c) => (
-                        <div key={`${r}-${c}`} className="relative w-full h-full"><Tile value={cell} /></div>
+                        <div key={`${r}-${c}`} className="relative w-full h-full">
+                            <Tile value={cell} />
+                        </div>
                     )))}
+
                     {/* Walls Rendering */}
                     {level.thinWalls?.vertical?.map(([r, c], i) => (
                         <div key={`v-${i}`} className="absolute bg-slate-800 dark:bg-slate-200 rounded-full z-10 shadow-sm"
-                            style={{ width: '6px', height: `calc(${cellPct}% - 1.25*${gapRem}rem)`, top: `calc(${r * cellPct}% + ${gapRem / 2}rem)`, left: `calc(${(c + 1) * cellPct}% - ${gapRem / 2}rem )` }} />
+                            style={{
+                                width: '6px',
+                                height: `calc(${cellHeightPct}% - 1.25*${gapRem}rem)`,
+                                top: `calc(${r * cellHeightPct}% + ${gapRem / 2}rem)`,
+                                left: `calc(${(c + 1) * cellWidthPct}% - ${gapRem / 2}rem )`
+                            }} />
                     ))}
                     {level.thinWalls?.horizontal?.map(([r, c], i) => (
                         <div key={`h-${i}`} className="absolute bg-slate-800 dark:bg-slate-200 rounded-full z-10 shadow-sm"
-                            style={{ height: '6px', width: `calc(${cellPct}% - ${gapRem}rem)`, left: `calc(${c * cellPct}% + ${gapRem / 2}rem)`, top: `calc(${(r + 1) * cellPct}% - ${gapRem / 2}rem )` }} />
+                            style={{
+                                height: '6px',
+                                width: `calc(${cellWidthPct}% - ${gapRem}rem)`,
+                                left: `calc(${c * cellWidthPct}% + ${gapRem / 2}rem)`,
+                                top: `calc(${(r + 1) * cellHeightPct}% - ${gapRem / 2}rem )`
+                            }} />
                     ))}
                 </div>
 
@@ -222,8 +248,8 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
                                 <div className="text-5xl mb-4">😔</div>
                                 <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Stuck?</h2>
                                 <div className="flex gap-3 mt-4">
-                                    <button onClick={undo} className="bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white font-bold py-2 px-6 rounded-lg">Undo</button>
-                                    <button onClick={reset} className="bg-orange-500 text-white font-bold py-2 px-6 rounded-lg">Retry</button>
+                                    <button type="button" onClick={undo} className="bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white font-bold py-2 px-6 rounded-lg">Undo</button>
+                                    <button type="button" onClick={reset} className="bg-orange-500 text-white font-bold py-2 px-6 rounded-lg">Retry</button>
                                 </div>
                             </>
                         )}

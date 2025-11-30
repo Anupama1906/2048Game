@@ -55,9 +55,8 @@ const MECHANICS = createSection("Mechanics", [
         description: "Generators (Factory icon) spawn new numbers when you clear the space.",
         grid: [
             [G(2), 0, 0, G(2)],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0],
             [0, 0, 0, 0]
+
         ]
     },
     {
