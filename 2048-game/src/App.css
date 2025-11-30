@@ -1,5 +1,14 @@
+html,
 body {
-  overscroll-behavior: none;
+  overscroll-behavior: contain;
+  touch-action: manipulation;
+}
+
+.custom-scrollbar {
+  overscroll-behavior: contain;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
