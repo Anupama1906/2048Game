@@ -84,7 +84,6 @@ export default function Target2048App() {
                             level={currentLevel}
                             onBack={() => setScreen('level-select')}
                             onComplete={handleLevelComplete} // Pass the completion handler
-                            isDarkMode={isDarkMode}
                         />
                     )}
                 </div>

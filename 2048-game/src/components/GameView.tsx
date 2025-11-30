@@ -1,189 +1,30 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { RotateCcw, ChevronRight, Sparkles, BrainCircuit, X, Loader2, Trophy, Lock, RefreshCw } from 'lucide-react';
-import type { Level, Grid, Cell, GameState, Direction } from '../types/types';
+import type { Level, Cell, Direction } from '../types/types';
 import { TILE_COLORS, WALL } from '../constants/constants';
-import { cloneGrid, canMove, callGemini, createWallMap, rotateWalls } from '../utils/utils';
+import { useGame } from '../hooks/usegame';
+import { callGemini } from '../utils/utils';
 
 interface GameViewProps {
     level: Level;
     onBack: () => void;
     onComplete: () => void;
-    isDarkMode?: boolean;
 }
 
 const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
-    const [grid, setGrid] = useState<Grid>([]);
-    const [history, setHistory] = useState<Grid[]>([]);
-    const [gameState, setGameState] = useState<GameState>('playing');
+    // 1. Use the Hook
+    const { grid, gameState, move, undo, reset, canUndo, moves } = useGame(level);
+
+    // 2. UI State (Hints, etc.)
     const [showHintModal, setShowHintModal] = useState(false);
     const [aiResponse, setAiResponse] = useState("");
     const [isLoadingAi, setIsLoadingAi] = useState(false);
 
-    // Derive board size from the level grid (validate it's square)
-    const boardSize = level.grid.length;
-
     const touchStart = useRef<{ x: number; y: number } | null>(null);
     const touchEnd = useRef<{ x: number; y: number } | null>(null);
+    const boardSize = level.grid.length;
 
-    useEffect(() => {
-        // Validate grid is square
-        const isSquare = level.grid.every(row => row.length === boardSize);
-        if (!isSquare) {
-            console.error('Grid must be square!');
-            return;
-        }
-
-        const initialGrid: Grid = level.grid.map(row =>
-            row.map(cell => (cell === 'W' || cell === 'WALL') ? WALL : cell)
-        );
-        setGrid(initialGrid);
-        setHistory([]);
-        setGameState('playing');
-        setAiResponse("");
-        setShowHintModal(false);
-    }, [level, boardSize]);
-
-    const undo = () => {
-        if (history.length === 0 || gameState === 'won') return;
-        const previous = history[history.length - 1];
-        setGrid(previous);
-        setHistory(prev => prev.slice(0, -1));
-        setGameState('playing');
-    };
-
-    const resetLevel = () => {
-        const initialGrid: Grid = level.grid.map(row =>
-            row.map(cell => (cell === 'W' || cell === 'WALL') ? WALL : cell)
-        );
-        setGrid(initialGrid);
-        setHistory([]);
-        setGameState('playing');
-    };
-
-    const move = useCallback((direction: Direction) => {
-        if (gameState !== 'playing') return;
-
-        setHistory(prev => [...prev, cloneGrid(grid)]);
-
-        // Use dynamic size for wall maps
-        let currentV = createWallMap(level.thinWalls?.vertical, boardSize);
-        let currentH = createWallMap(level.thinWalls?.horizontal, boardSize);
-
-        let workingGrid = cloneGrid(grid);
-        let moved = false;
-        let maxVal = 0;
-
-        const processLine = (line: Cell[]): Cell[] => {
-            let segments: Cell[][] = [];
-            let currentSegment: Cell[] = [];
-            for (let i = 0; i < line.length; i++) {
-                if (line[i] === WALL) {
-                    if (currentSegment.length > 0) segments.push(currentSegment);
-                    segments.push([WALL]);
-                    currentSegment = [];
-                } else {
-                    currentSegment.push(line[i]);
-                }
-            }
-            if (currentSegment.length > 0) segments.push(currentSegment);
-
-            let processedLine: Cell[] = [];
-            segments.forEach(seg => {
-                if (seg[0] === WALL) { processedLine.push(WALL); return; }
-                let tiles = seg.filter(val => val !== 0) as number[];
-                let mergedTiles: number[] = [];
-                for (let i = 0; i < tiles.length; i++) {
-                    if (i < tiles.length - 1 && tiles[i] === tiles[i + 1]) {
-                        const newVal = tiles[i] * 2;
-                        mergedTiles.push(newVal);
-                        if (newVal > maxVal) maxVal = newVal;
-                        i++;
-                    } else {
-                        mergedTiles.push(tiles[i]);
-                        if (tiles[i] > maxVal) maxVal = tiles[i];
-                    }
-                }
-                while (mergedTiles.length < seg.length) mergedTiles.push(0);
-                processedLine = processedLine.concat(mergedTiles);
-            });
-            return processedLine;
-        };
-
-        const rotateAll = () => {
-            const newG: Grid = Array(boardSize).fill(null).map(() => Array(boardSize).fill(0));
-            for (let r = 0; r < boardSize; r++) for (let c = 0; c < boardSize; c++) newG[boardSize - 1 - c][r] = workingGrid[r][c];
-            workingGrid = newG;
-
-            // Pass boardSize to rotateWalls
-            const rotated = rotateWalls(currentV, currentH, boardSize);
-            currentV = rotated.v;
-            currentH = rotated.h;
-        };
-
-        if (direction === 'UP') rotateAll();
-        else if (direction === 'RIGHT') { rotateAll(); rotateAll(); }
-        else if (direction === 'DOWN') { rotateAll(); rotateAll(); rotateAll(); }
-
-        for (let r = 0; r < boardSize; r++) {
-            const originalRow = workingGrid[r];
-            let expandedRow: Cell[] = [];
-
-            // Build expanded row with thin walls inserted
-            for (let c = 0; c < boardSize; c++) {
-                expandedRow.push(originalRow[c]);
-                if (c < boardSize - 1 && currentV[r][c]) {
-                    expandedRow.push(WALL);
-                }
-            }
-
-            const processedWithWalls = processLine(expandedRow);
-
-            // Extract final row, removing thin walls but keeping block walls
-            const finalRow: Cell[] = [];
-            let sourceIndex = 0;
-            for (let c = 0; c < boardSize; c++) {
-                // If original cell was a WALL block, keep it as WALL
-                if (originalRow[c] === WALL) {
-                    finalRow.push(WALL);
-                    sourceIndex++;
-                    // Skip thin wall if it was after this position
-                    if (c < boardSize - 1 && currentV[r][c]) {
-                        sourceIndex++;
-                    }
-                } else {
-                    // Take the processed value
-                    finalRow.push(processedWithWalls[sourceIndex]);
-                    sourceIndex++;
-                    // Skip thin wall if it was after this position
-                    if (c < boardSize - 1 && currentV[r][c]) {
-                        sourceIndex++;
-                    }
-                }
-            }
-
-            if (JSON.stringify(originalRow) !== JSON.stringify(finalRow)) moved = true;
-            workingGrid[r] = finalRow;
-        }
-
-        if (direction === 'UP') { rotateAll(); rotateAll(); rotateAll(); }
-        else if (direction === 'RIGHT') { rotateAll(); rotateAll(); }
-        else if (direction === 'DOWN') { rotateAll(); }
-
-        if (moved) {
-            setGrid(workingGrid);
-            let currentMax = 0;
-            workingGrid.flat().forEach(cell => {
-                if (typeof cell === 'number' && cell > currentMax) currentMax = cell;
-            });
-
-            if (currentMax >= level.target) setGameState('won');
-            else if (!canMove(workingGrid, level.thinWalls)) setGameState('lost');
-        } else {
-            setHistory(prev => prev.slice(0, -1));
-        }
-    }, [grid, gameState, level.target, level.thinWalls, boardSize]);
-
-    // Controls
+    // Keyboard Controls
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (showHintModal) return;
@@ -198,6 +39,7 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [move, showHintModal]);
 
+    // Touch Controls
     const onTouchStart = (e: React.TouchEvent) => {
         touchEnd.current = null;
         touchStart.current = { x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY }
@@ -205,27 +47,29 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
     const onTouchMove = (e: React.TouchEvent) => { touchEnd.current = { x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY } }
     const onTouchEnd = () => {
         if (!touchStart.current || !touchEnd.current) return;
-        const distanceX = touchStart.current.x - touchEnd.current.x;
-        const distanceY = touchStart.current.y - touchEnd.current.y;
-        const absX = Math.abs(distanceX);
-        const absY = Math.abs(distanceY);
-        if (absX > absY && absX > 30) { distanceX > 0 ? move('LEFT') : move('RIGHT'); }
-        else if (absY > 30) { distanceY > 0 ? move('UP') : move('DOWN'); }
+        const dx = touchStart.current.x - touchEnd.current.x;
+        const dy = touchStart.current.y - touchEnd.current.y;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) { dx > 0 ? move('LEFT') : move('RIGHT'); }
+        else if (Math.abs(dy) > 30) { dy > 0 ? move('UP') : move('DOWN'); }
     }
 
     const handleAiHint = async () => {
         setAiResponse("");
         setIsLoadingAi(true);
         try {
-            const prompt = `I am playing a 2048 puzzle. Current Grid: ${JSON.stringify(grid)}. Target: ${level.target}. WALL blocks moves. No spawns. Give me a 2 sentence hint.`;
+            const prompt = `I am playing a 2048 puzzle. Current Grid: ${JSON.stringify(grid)}. Target: ${level.target}. Moves taken: ${moves}. Give me a short hint.`;
             const response = await callGemini(prompt, "You are a puzzle coach.");
             setAiResponse(response);
         } catch (error) {
-            setAiResponse("Unable to generate hint. Please try again.");
+            setAiResponse("Hint unavailable.");
         } finally {
             setIsLoadingAi(false);
         }
     };
+
+    // Render Helpers
+    const cellPct = 100 / boardSize;
+    const gapRem = 0.75;
 
     const Tile = ({ value }: { value: Cell }) => {
         if (value === 0) return <div className="w-full h-full rounded-lg bg-gray-200/50 dark:bg-gray-700/50" />;
@@ -234,34 +78,28 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
                 <Lock className="text-slate-500 w-6 h-6" />
             </div>
         );
-        // Dynamic font size for small/large grids
         const textSize = boardSize > 5 ? 'text-base' : boardSize > 4 ? 'text-lg' : 'text-xl';
-
         return (
-            <div className={`w-full h-full rounded-lg ${TILE_COLORS[value] || 'bg-gray-900 text-white'} shadow-sm flex items-center justify-center font-bold ${textSize} select-none transition-all duration-100 transform`}>
+            <div className={`w-full h-full rounded-lg ${TILE_COLORS[value] || 'bg-gray-900 text-white'} shadow-sm flex items-center justify-center font-bold ${textSize} select-none animate-in zoom-in duration-200`}>
                 {value}
             </div>
         );
     };
 
-    // Calculate percentage width for cells and gap size in percentage
-    const cellPct = 100 / boardSize;
-    const gapRem = 0.75; // gap-3 = 0.75rem
-
     return (
         <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto h-full min-h-[500px]">
-            {/* Hint Modal */}
+            {/* Hint Modal (UI Only) */}
             {showHintModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 relative">
-                        <button onClick={() => setShowHintModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X size={20} /></button>
+                        <button onClick={() => setShowHintModal(false)} className="absolute top-4 right-4 text-slate-400"><X size={20} /></button>
                         <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-indigo-600 dark:text-indigo-400"><BrainCircuit /> AI Coach</h3>
                         {aiResponse ? (
-                            <p className="text-slate-700 dark:text-slate-300 leading-relaxed bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded-lg border border-indigo-100 dark:border-indigo-800">{aiResponse}</p>
+                            <p className="text-slate-700 dark:text-slate-300 bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded-lg">{aiResponse}</p>
                         ) : (
                             <div className="text-center py-4">
                                 {isLoadingAi ? <Loader2 className="animate-spin mx-auto text-indigo-500" /> :
-                                    <button onClick={handleAiHint} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition">Analyze Board</button>}
+                                    <button onClick={handleAiHint} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold">Analyze Board</button>}
                             </div>
                         )}
                     </div>
@@ -273,7 +111,12 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
                 <button onClick={onBack} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition text-slate-600 dark:text-slate-300 flex items-center gap-1">
                     <ChevronRight className="rotate-180" size={20} /> <span className="text-sm font-bold">Back</span>
                 </button>
-                <div className="flex gap-2">
+
+                <div className="flex gap-6">
+                    <div className="text-right">
+                        <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Moves</div>
+                        <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{moves}</div>
+                    </div>
                     <div className="text-right">
                         <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Target</div>
                         <div className="text-xl font-bold text-orange-600 dark:text-orange-400">{level.target}</div>
@@ -286,62 +129,37 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
                 <p className="text-slate-500 dark:text-slate-400 text-sm">{level.description}</p>
             </div>
 
-            {/* Board Container */}
-            <div
-                className="relative bg-slate-300 dark:bg-slate-700 p-3 rounded-xl shadow-xl w-full aspect-square mb-6"
-                onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
-            >
-                {/* Dynamic Grid Layout */}
-                <div
-                    className="grid gap-3 w-full h-full relative z-0"
-                    style={{
-                        gridTemplateColumns: `repeat(${boardSize}, minmax(0, 1fr))`,
-                        gridTemplateRows: `repeat(${boardSize}, minmax(0, 1fr))`
-                    }}
-                >
-                    {grid.map((row, rIndex) => row.map((cell, cIndex) => (
-                        <div key={`${rIndex}-${cIndex}`} className="relative w-full h-full">
-                            <Tile value={cell} />
-                        </div>
+            {/* Board */}
+            <div className="relative bg-slate-300 dark:bg-slate-700 p-3 rounded-xl shadow-xl w-full aspect-square mb-6"
+                onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+
+                <div className="grid gap-3 w-full h-full relative z-0"
+                    style={{ gridTemplateColumns: `repeat(${boardSize}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${boardSize}, minmax(0, 1fr))` }}>
+                    {grid.map((row, r) => row.map((cell, c) => (
+                        <div key={`${r}-${c}`} className="relative w-full h-full"><Tile value={cell} /></div>
                     )))}
 
-                    {/* Thin Wall Overlays with Dynamic Positioning */}
+                    {/* Thin Walls Rendering */}
                     {level.thinWalls?.vertical?.map(([r, c], i) => (
-                        <div
-                            key={`v-${i}`}
-                            className="absolute bg-slate-800 dark:bg-slate-200 rounded-full z-10 shadow-sm"
-                            style={{
-                                width: '6px',
-                                height: `calc(${cellPct}% - 1.25*${gapRem}rem)`,
-                                top: `calc(${r * cellPct}% + ${gapRem / 2}rem)`,
-                                left: `calc(${(c + 1) * cellPct}% - ${gapRem / 2}rem )`
-                            }}
-                        />
+                        <div key={`v-${i}`} className="absolute bg-slate-800 dark:bg-slate-200 rounded-full z-10 shadow-sm"
+                            style={{ width: '6px', height: `calc(${cellPct}% - 1.25*${gapRem}rem)`, top: `calc(${r * cellPct}% + ${gapRem / 2}rem)`, left: `calc(${(c + 1) * cellPct}% - ${gapRem / 2}rem )` }} />
                     ))}
-
                     {level.thinWalls?.horizontal?.map(([r, c], i) => (
-                        <div
-                            key={`h-${i}`}
-                            className="absolute bg-slate-800 dark:bg-slate-200 rounded-full z-10 shadow-sm"
-                            style={{
-                                height: '6px',
-                                width: `calc(${cellPct}% - ${gapRem}rem)`,
-                                left: `calc(${c * cellPct}% + ${gapRem / 2}rem)`,
-                                top: `calc(${(r + 1) * cellPct}% - ${gapRem / 2}rem )`
-                            }}
-                        />
+                        <div key={`h-${i}`} className="absolute bg-slate-800 dark:bg-slate-200 rounded-full z-10 shadow-sm"
+                            style={{ height: '6px', width: `calc(${cellPct}% - ${gapRem}rem)`, left: `calc(${c * cellPct}% + ${gapRem / 2}rem)`, top: `calc(${(r + 1) * cellPct}% - ${gapRem / 2}rem )` }} />
                     ))}
                 </div>
 
-                {/* Overlays (Win/Loss) */}
-                {(gameState !== 'playing') && (
+                {/* Overlays */}
+                {gameState !== 'playing' && (
                     <div className="absolute inset-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center z-20 animate-in fade-in">
                         {gameState === 'won' ? (
                             <>
                                 <Trophy size={64} className="text-yellow-500 mb-4" />
                                 <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">Solved!</h2>
-                                <button onClick={onComplete} className="mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105">
-                                    Level Select
+                                <p className="text-slate-500 dark:text-slate-400 mb-4 font-medium">in {moves} moves</p>
+                                <button onClick={onComplete} className="mt-2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105">
+                                    Next Level
                                 </button>
                             </>
                         ) : (
@@ -350,7 +168,7 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
                                 <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Stuck?</h2>
                                 <div className="flex gap-3 mt-4">
                                     <button onClick={undo} className="bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white font-bold py-2 px-6 rounded-lg">Undo</button>
-                                    <button onClick={resetLevel} className="bg-orange-500 text-white font-bold py-2 px-6 rounded-lg">Retry</button>
+                                    <button onClick={reset} className="bg-orange-500 text-white font-bold py-2 px-6 rounded-lg">Retry</button>
                                 </div>
                             </>
                         )}
@@ -360,15 +178,9 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
 
             {/* Footer */}
             <div className="flex gap-4 w-full justify-center">
-                <button onClick={undo} disabled={history.length === 0} className="p-3 bg-white dark:bg-slate-800 shadow rounded-xl text-slate-600 dark:text-slate-300 disabled:opacity-50">
-                    <RotateCcw size={20} />
-                </button>
-                <button onClick={resetLevel} className="p-3 bg-white dark:bg-slate-800 shadow rounded-xl text-slate-600 dark:text-slate-300">
-                    <RefreshCw size={20} />
-                </button>
-                <button onClick={() => setShowHintModal(true)} className="p-3 bg-indigo-100 dark:bg-indigo-900/50 shadow rounded-xl text-indigo-600 dark:text-indigo-300 flex items-center gap-2 font-semibold">
-                    <Sparkles size={18} /> Hint
-                </button>
+                <button onClick={undo} disabled={!canUndo} className="p-3 bg-white dark:bg-slate-800 shadow rounded-xl text-slate-600 dark:text-slate-300 disabled:opacity-50 transition"><RotateCcw size={20} /></button>
+                <button onClick={reset} className="p-3 bg-white dark:bg-slate-800 shadow rounded-xl text-slate-600 dark:text-slate-300 transition"><RefreshCw size={20} /></button>
+                <button onClick={() => setShowHintModal(true)} className="p-3 bg-indigo-100 dark:bg-indigo-900/50 shadow rounded-xl text-indigo-600 dark:text-indigo-300 flex items-center gap-2 font-semibold transition"><Sparkles size={18} /> Hint</button>
             </div>
         </div>
     );

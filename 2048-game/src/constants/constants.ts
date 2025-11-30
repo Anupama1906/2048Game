@@ -63,10 +63,11 @@ export const INITIAL_LEVELS: Level[] = [
         name: "Cornered",
         description: "Get the 32. Don't get stuck in the corners.",
         grid: [
-            [2, 2, 4, 8],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0]
+            [2, 2, 4, 8, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0]
         ],
         thinWalls: {
             vertical: [[0, 0]],    // Wall between the first two '2's
