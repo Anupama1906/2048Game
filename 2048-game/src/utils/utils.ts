@@ -1,33 +1,60 @@
-// utils.ts
-import type { Grid, Cell } from '../types/types'; // Adjust path if needed
-import { WALL } from '../constants/constants';   // Adjust path if needed
+// src/utils/utils.ts
+import type { Grid, Level } from '../types/types';
+import { WALL } from '../constants/constants';
+
+// Use environment variable for API key (Vite standard)
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 
 export const cloneGrid = (grid: Grid): Grid => grid.map(row => [...row]);
 
-export const canMove = (grid: Grid): boolean => {
+export const createWallMap = (walls: [number, number][] | undefined, size: number): boolean[][] => {
+    const map = Array(size).fill(null).map(() => Array(size).fill(false));
+    walls?.forEach(([r, c]) => { if (r < size && c < size) map[r][c] = true; });
+    return map;
+};
+
+// FIXED: Now accepts thinWalls to check for blockage correctly
+export const canMove = (grid: Grid, thinWalls?: Level['thinWalls']): boolean => {
     const size = grid.length;
+
+    // Create quick lookup maps for walls
+    const vWalls = createWallMap(thinWalls?.vertical, size);
+    const hWalls = createWallMap(thinWalls?.horizontal, size);
+
     for (let r = 0; r < size; r++) {
         for (let c = 0; c < size; c++) {
             const current = grid[r][c];
-            if (current === 0) return true;
+            if (current === 0) return true; // Empty spot means we can move
             if (current === WALL) continue;
+
+            // Check Right
             if (c < size - 1) {
-                const right = grid[r][c + 1];
-                if (right === current || right === 0) return true;
+                // If there is NO vertical wall between current and right
+                if (!vWalls[r][c]) {
+                    const right = grid[r][c + 1];
+                    if (right === current || right === 0) return true;
+                }
             }
+
+            // Check Down
             if (r < size - 1) {
-                const down = grid[r + 1][c];
-                if (down === current || down === 0) return true;
+                // If there is NO horizontal wall between current and down
+                if (!hWalls[r][c]) {
+                    const down = grid[r + 1][c];
+                    if (down === current || down === 0) return true;
+                }
             }
         }
     }
     return false;
 };
 
-// --- Gemini API ---
-const apiKey = ""; // Insert your key here
-
 export async function callGemini(prompt: string, systemInstruction?: string): Promise<string> {
+    if (!apiKey) {
+        console.error("API Key is missing. Set VITE_GEMINI_API_KEY in your .env file.");
+        return "Error: API Key missing.";
+    }
+
     try {
         const payload: any = {
             contents: [{ parts: [{ text: prompt }] }],
@@ -53,10 +80,10 @@ export async function callGemini(prompt: string, systemInstruction?: string): Pr
     }
 }
 
-export const createWallMap = (walls: [number, number][] | undefined, size: number): boolean[][] => {
-    const map = Array(size).fill(null).map(() => Array(size).fill(false));
-    walls?.forEach(([r, c]) => { if (r < size && c < size) map[r][c] = true; });
-    return map;
+// Helper to reliably extract JSON from markdown or text
+export const extractJson = (text: string): string => {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    return jsonMatch ? jsonMatch[0] : "{}";
 };
 
 export const rotateWalls = (vWalls: boolean[][], hWalls: boolean[][], size: number) => {
@@ -65,20 +92,11 @@ export const rotateWalls = (vWalls: boolean[][], hWalls: boolean[][], size: numb
 
     for (let r = 0; r < size; r++) {
         for (let c = 0; c < size; c++) {
-            // Old Vertical wall at (r,c) becomes Horizontal wall.
-            // Logic: Vertical (r, c) separates (r,c) and (r,c+1).
-            // Rotated: (N-1-c, r) and (N-2-c, r).
-            // Becomes Horizontal wall below (N-2-c, r).
             if (vWalls[r][c]) {
                 const newR = (size - 2) - c;
                 const newC = r;
                 if (newR >= 0) newH[newR][newC] = true;
             }
-
-            // Old Horizontal wall at (r,c) becomes Vertical wall.
-            // Logic: Horizontal (r,c) separates (r,c) and (r+1,c).
-            // Rotated: (N-1-c, r) and (N-1-c, r+1).
-            // Becomes Vertical wall right of (N-1-c, r).
             if (hWalls[r][c]) {
                 const newR = (size - 1) - c;
                 const newC = r;

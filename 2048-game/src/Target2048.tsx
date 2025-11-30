@@ -1,5 +1,5 @@
-// Target2048.tsx
-import React, { useState } from 'react';
+// src/Target2048.tsx
+import React, { useState, useEffect } from 'react';
 import type { AppScreen, Level } from './types/types';
 import MainMenuView from './components/MainMenuView';
 import LevelSelectView from './components/LevelSelectView';
@@ -11,7 +11,18 @@ export default function Target2048App() {
     const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
     const [isDarkMode, setIsDarkMode] = useState(false);
 
+    // FIXED: Load completed levels from localStorage
+    const [completedLevels, setCompletedLevels] = useState<Set<string | number>>(() => {
+        const saved = localStorage.getItem('target2048_progress');
+        return saved ? new Set(JSON.parse(saved)) : new Set();
+    });
+
     const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
+
+    // FIXED: Save progress whenever it changes
+    useEffect(() => {
+        localStorage.setItem('target2048_progress', JSON.stringify([...completedLevels]));
+    }, [completedLevels]);
 
     const handleSelectLevel = (level: Level) => {
         setCurrentLevel(level);
@@ -23,13 +34,21 @@ export default function Target2048App() {
         setScreen('game');
     };
 
+    // FIXED: Mark level as complete and return to selection
+    const handleLevelComplete = () => {
+        if (currentLevel) {
+            setCompletedLevels(prev => {
+                const newSet = new Set(prev);
+                newSet.add(currentLevel.id);
+                return newSet;
+            });
+        }
+        setScreen('level-select');
+    };
+
     const handleBackToMenu = () => {
         setScreen('menu');
         setCurrentLevel(null);
-    };
-
-    const handleLevelSelectBack = () => {
-        setScreen('menu');
     };
 
     return (
@@ -48,7 +67,8 @@ export default function Target2048App() {
                     {screen === 'level-select' && (
                         <LevelSelectView
                             onSelectLevel={handleSelectLevel}
-                            onBack={handleLevelSelectBack}
+                            onBack={handleBackToMenu} // Changed to back to menu
+                            completedLevels={completedLevels} // Pass progress
                         />
                     )}
 
@@ -63,7 +83,7 @@ export default function Target2048App() {
                         <GameView
                             level={currentLevel}
                             onBack={() => setScreen('level-select')}
-                            onComplete={() => setScreen('level-select')}
+                            onComplete={handleLevelComplete} // Pass the completion handler
                             isDarkMode={isDarkMode}
                         />
                     )}

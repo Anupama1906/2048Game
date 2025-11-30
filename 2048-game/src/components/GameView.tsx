@@ -177,7 +177,7 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
             });
 
             if (currentMax >= level.target) setGameState('won');
-            else if (!canMove(workingGrid)) setGameState('lost');
+            else if (!canMove(workingGrid, level.thinWalls)) setGameState('lost');
         } else {
             setHistory(prev => prev.slice(0, -1));
         }
@@ -312,9 +312,9 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
                             className="absolute bg-slate-800 dark:bg-slate-200 rounded-full z-10 shadow-sm"
                             style={{
                                 width: '6px',
-                                height: `calc(${cellPct}% - ${gapRem}rem)`,
+                                height: `calc(${cellPct}% - 1.25*${gapRem}rem)`,
                                 top: `calc(${r * cellPct}% + ${gapRem / 2}rem)`,
-                                left: `calc(${(c + 1) * cellPct}% - ${gapRem / 2}rem - 3px)`
+                                left: `calc(${(c + 1) * cellPct}% - ${gapRem / 2}rem )`
                             }}
                         />
                     ))}
@@ -327,7 +327,7 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
                                 height: '6px',
                                 width: `calc(${cellPct}% - ${gapRem}rem)`,
                                 left: `calc(${c * cellPct}% + ${gapRem / 2}rem)`,
-                                top: `calc(${(r + 1) * cellPct}% - ${gapRem / 2}rem - 3px)`
+                                top: `calc(${(r + 1) * cellPct}% - ${gapRem / 2}rem )`
                             }}
                         />
                     ))}
