@@ -195,7 +195,7 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
 
             {/* Board Container */}
             {/* FIX 3: Removed 'aspect-square' to allow rectangular aspect ratios */}
-            <div className="relative bg-slate-300 dark:bg-slate-700 p-3 rounded-xl shadow-xl w-full mb-6"
+            <div className="relative bg-slate-300 dark:bg-slate-700 p-3 rounded-xl shadow-xl w-full mb-6 touch-none"
                 onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
 
                 <div className="grid gap-3 w-full h-full relative z-0"
