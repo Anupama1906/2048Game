@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Level, Grid, GameState, Direction } from '../types/types';
-import { WALL } from '../constants/constants';
+import type { Level, Grid, GameState, Direction, Cell } from '../types/types';
+import { WALL } from '../constants/game';
 import * as Engine from '../game/engine';
+import { getCellValue } from '../game/mechanics';
 
 export const useGame = (level: Level) => {
     const [grid, setGrid] = useState<Grid>([]);
@@ -10,7 +11,6 @@ export const useGame = (level: Level) => {
 
     // Initialize
     useEffect(() => {
-        const boardSize = level.grid.length;
         // Convert 'W' strings to numeric constants if needed
         const initialGrid: Grid = level.grid.map(row =>
             row.map(cell => (cell === 'W' || cell === 'WALL') ? WALL : cell)
@@ -32,8 +32,9 @@ export const useGame = (level: Level) => {
             // Check Win/Loss conditions
             // 1. Check Win (Target reached)
             let maxVal = 0;
-            result.grid.flat().forEach(c => {
-                if (typeof c === 'number' && c > maxVal) maxVal = c;
+            result.grid.flat().forEach((c: Cell) => {
+                const val = getCellValue(c);
+                if (val > maxVal) maxVal = val;
             });
             if (maxVal >= level.target) {
                 setGameState('won');
@@ -69,7 +70,7 @@ export const useGame = (level: Level) => {
         grid,
         gameState,
         history,
-        moves: history.length, // Exposed move count
+        moves: history.length,
         move,
         undo,
         reset,

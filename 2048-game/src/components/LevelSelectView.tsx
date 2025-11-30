@@ -2,12 +2,12 @@
 import React from 'react';
 import { ChevronRight, Lock, Star } from 'lucide-react';
 import type { Level } from '../types/types';
-import { INITIAL_LEVELS } from '../constants/constants';
+import { INITIAL_LEVELS } from '../data/levels';
 
 interface LevelSelectViewProps {
     onSelectLevel: (l: Level) => void;
     onBack: () => void;
-    completedLevels?: Set<number | string>; // Optional: track completed levels
+    completedLevels?: Set<number | string>;
 }
 
 const LevelSelectView: React.FC<LevelSelectViewProps> = ({ onSelectLevel, onBack, completedLevels = new Set() }) => {
@@ -81,39 +81,33 @@ const LevelSelectView: React.FC<LevelSelectViewProps> = ({ onSelectLevel, onBack
                                             <button
                                                 key={level.id}
                                                 onClick={() => onSelectLevel(level)}
-                                                className="group relative bg-white dark:bg-slate-800 rounded-2xl shadow-md hover:shadow-xl border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all duration-200 overflow-hidden aspect-square"
+                                                className="group relative bg-white dark:bg-slate-800 rounded-2xl shadow-md hover:shadow-xl border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all duration-200 overflow-hidden aspect-square flex flex-col items-center justify-center p-2"
                                             >
                                                 {/* Completed Badge */}
                                                 {isCompleted && (
                                                     <div className="absolute top-2 right-2 z-10">
                                                         <div className="bg-yellow-400 rounded-full p-1 shadow-lg">
-                                                            <Star size={14} className="text-yellow-900 fill-yellow-900" />
+                                                            <Star size={10} className="text-yellow-900 fill-yellow-900" />
                                                         </div>
                                                     </div>
                                                 )}
 
                                                 {/* Content */}
-                                                <div className="flex flex-col items-center justify-center h-full p-4">
-                                                    {/* Level Number */}
-                                                    <div className="text-4xl font-black text-slate-800 dark:text-slate-200 mb-2 group-hover:scale-110 transition-transform">
+                                                <div className="flex-1 flex items-center justify-center">
+                                                    <div className="text-3xl font-black text-slate-800 dark:text-slate-200 group-hover:scale-110 transition-transform">
                                                         {levelNumber}
                                                     </div>
+                                                </div>
 
-                                                    {/* Target Badge */}
-                                                    <div className="bg-gradient-to-r from-orange-400 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm">
-                                                        {level.target}
-                                                    </div>
-
-                                                    {/* Level Name (on hover) */}
-                                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <div className="text-white text-xs font-semibold text-center line-clamp-2">
-                                                            {level.name}
-                                                        </div>
+                                                {/* Level Name (Visible Always) */}
+                                                <div className="w-full text-center mt-auto pt-1">
+                                                    <div className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-tight leading-tight line-clamp-2">
+                                                        {level.name}
                                                     </div>
                                                 </div>
 
                                                 {/* Hover Effect Overlay */}
-                                                <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/10 transition-colors pointer-events-none" />
+                                                <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/5 transition-colors pointer-events-none" />
                                             </button>
                                         );
                                     })}

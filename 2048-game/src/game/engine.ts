@@ -1,5 +1,5 @@
 import type { Grid, Level, Direction, Cell } from '../types/types';
-import { WALL } from '../constants/constants';
+import { WALL } from '../constants/game';
 import * as GridOps from './grid';
 import * as Mechanics from './mechanics';
 

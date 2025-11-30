@@ -1,21 +1,8 @@
-// constants.ts
-import type { Level } from "../types/types";
+// src/data/levels.ts
+import type { Level, StationaryCell } from "../types/types";
 
-export const WALL = 'WALL';
-
-export const TILE_COLORS: Record<number, string> = {
-    2: 'bg-orange-100 text-gray-700 dark:bg-orange-200 dark:text-gray-900',
-    4: 'bg-orange-200 text-gray-700 dark:bg-orange-300 dark:text-gray-900',
-    8: 'bg-orange-300 text-white dark:bg-orange-500',
-    16: 'bg-orange-400 text-white dark:bg-orange-600',
-    32: 'bg-orange-500 text-white dark:bg-orange-700',
-    64: 'bg-orange-600 text-white dark:bg-orange-800',
-    128: 'bg-yellow-400 text-white text-3xl dark:bg-yellow-600',
-    256: 'bg-yellow-500 text-white text-3xl dark:bg-yellow-700',
-    512: 'bg-yellow-600 text-white text-3xl dark:bg-yellow-800',
-    1024: 'bg-yellow-700 text-white text-2xl dark:bg-yellow-900',
-    2048: 'bg-yellow-800 text-white text-2xl dark:bg-yellow-950',
-};
+// Helper for defining levels locally
+const S = (val: number): StationaryCell => ({ type: 'stationary', value: val });
 
 export const INITIAL_LEVELS: Level[] = [
     {
@@ -27,7 +14,6 @@ export const INITIAL_LEVELS: Level[] = [
         grid: [
             [2, 0],
             [0, 2],
-
         ]
     },
     {
@@ -70,8 +56,8 @@ export const INITIAL_LEVELS: Level[] = [
             [0, 0, 0, 0, 0]
         ],
         thinWalls: {
-            vertical: [[0, 0]],    // Wall between the first two '2's
-            horizontal: [[0, 2]]   // Wall below the '4'
+            vertical: [[0, 0]],
+            horizontal: [[0, 2]]
         }
     },
     {
@@ -83,7 +69,7 @@ export const INITIAL_LEVELS: Level[] = [
         grid: [
             [16, 0, 'W', 16],
             [8, 0, 'W', 8],
-            [4, 4, 0, 4],
+            [4, S(4), 0, 4],
             [0, 0, 0, 4]
         ]
     },
@@ -112,5 +98,18 @@ export const INITIAL_LEVELS: Level[] = [
             [0, 0, 0, 32],
             ['W', 'W', 'W', 32]
         ]
-    }
+    },
+    {
+        id: '3',
+        section: "Mechanics",
+        target: 32,
+        name: "Sticky Situation",
+        description: "Pinned tiles (with dots) won't move until you merge them.",
+        grid: [
+            [S(2), 0, 0, S(2)],
+            [0, 4, 4, 0],
+            [0, 0, 0, 0],
+            [S(8), 0, 0, S(8)]
+        ]
+    },
 ];

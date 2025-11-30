@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { RotateCcw, ChevronRight, Sparkles, BrainCircuit, X, Loader2, Trophy, Lock, RefreshCw } from 'lucide-react';
+import { RotateCcw, ChevronRight, Sparkles, BrainCircuit, X, Loader2, Trophy, Lock, RefreshCw, Pin } from 'lucide-react';
 import type { Level, Cell, Direction } from '../types/types';
-import { TILE_COLORS, WALL } from '../constants/constants';
+import { TILE_COLORS } from '../constants/theme';
+import { WALL } from '../constants/game';
 import { useGame } from '../hooks/usegame';
 import { callGemini } from '../utils/utils';
 
@@ -71,17 +72,57 @@ const GameView: React.FC<GameViewProps> = ({ level, onBack, onComplete }) => {
     const cellPct = 100 / boardSize;
     const gapRem = 0.75;
 
+    // Helper to calculate dynamic font size
+    const getFontSize = (val: number) => {
+        const len = val.toString().length;
+
+        // Huge tiles (3x3 or smaller)
+        if (boardSize <= 3) return len > 3 ? 'text-4xl' : 'text-5xl';
+
+        // Standard tiles (4x4)
+        if (boardSize === 4) return len > 3 ? 'text-3xl' : 'text-4xl';
+
+        // Small tiles (5x5)
+        if (boardSize === 5) return len > 3 ? 'text-xl' : 'text-2xl';
+
+        // Tiny tiles (6x6+)
+        return len > 3 ? 'text-xs' : 'text-sm';
+    };
+
     const Tile = ({ value }: { value: Cell }) => {
         if (value === 0) return <div className="w-full h-full rounded-lg bg-gray-200/50 dark:bg-gray-700/50" />;
+
         if (value === WALL) return (
             <div className="w-full h-full rounded-lg bg-slate-700 shadow-inner flex items-center justify-center border-4 border-slate-800 dark:border-slate-900">
                 <Lock className="text-slate-500 w-6 h-6" />
             </div>
         );
-        const textSize = boardSize > 5 ? 'text-base' : boardSize > 4 ? 'text-lg' : 'text-xl';
+
+        let displayValue: number;
+        let isStationary = false;
+
+        if (typeof value === 'object') {
+            displayValue = value.value;
+            isStationary = true;
+        } else {
+            displayValue = value;
+        }
+
+        const fontSizeClass = getFontSize(displayValue);
+
+        // Stationary styling: Distinct border/ring
+        const stationaryStyle = isStationary
+            ? "border-4 border-slate-400 dark:border-slate-500 ring-2 ring-slate-200 dark:ring-slate-700 z-10"
+            : "";
+
         return (
-            <div className={`w-full h-full rounded-lg ${TILE_COLORS[value] || 'bg-gray-900 text-white'} shadow-sm flex items-center justify-center font-bold ${textSize} select-none animate-in zoom-in duration-200`}>
-                {value}
+            <div className={`w-full h-full rounded-lg ${TILE_COLORS[displayValue] || 'bg-gray-900 text-white'} ${stationaryStyle} shadow-sm flex items-center justify-center font-bold ${fontSizeClass} select-none animate-in zoom-in duration-200 relative overflow-hidden`}>
+                {displayValue}
+                {isStationary && (
+                    <div className="absolute top-1 right-1 opacity-60">
+                        <Lock size={14} className="text-slate-900 dark:text-white" strokeWidth={2.5} />
+                    </div>
+                )}
             </div>
         );
     };

@@ -5,13 +5,14 @@ import MainMenuView from './components/MainMenuView';
 import LevelSelectView from './components/LevelSelectView';
 import CreatorView from './components/CreatorView';
 import GameView from './components/GameView';
+import { INITIAL_LEVELS } from './data/levels'; // Imported levels list
 
 export default function Target2048App() {
     const [screen, setScreen] = useState<AppScreen>('menu');
     const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
     const [isDarkMode, setIsDarkMode] = useState(false);
 
-    // FIXED: Load completed levels from localStorage
+    // Load completed levels from localStorage
     const [completedLevels, setCompletedLevels] = useState<Set<string | number>>(() => {
         const saved = localStorage.getItem('target2048_progress');
         return saved ? new Set(JSON.parse(saved)) : new Set();
@@ -19,7 +20,7 @@ export default function Target2048App() {
 
     const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
-    // FIXED: Save progress whenever it changes
+    // Save progress whenever it changes
     useEffect(() => {
         localStorage.setItem('target2048_progress', JSON.stringify([...completedLevels]));
     }, [completedLevels]);
@@ -34,16 +35,31 @@ export default function Target2048App() {
         setScreen('game');
     };
 
-    // FIXED: Mark level as complete and return to selection
+    // FIXED: Advance to the next level if available
     const handleLevelComplete = () => {
         if (currentLevel) {
+            // 1. Save Progress
             setCompletedLevels(prev => {
                 const newSet = new Set(prev);
                 newSet.add(currentLevel.id);
                 return newSet;
             });
+
+            // 2. Find Next Level
+            const currentIndex = INITIAL_LEVELS.findIndex(l => l.id === currentLevel.id);
+
+            // If we found the current level and it's NOT the last one, go to next
+            if (currentIndex !== -1 && currentIndex < INITIAL_LEVELS.length - 1) {
+                const nextLevel = INITIAL_LEVELS[currentIndex + 1];
+                setCurrentLevel(nextLevel);
+                // Screen remains 'game', so the component re-renders with the new level
+            } else {
+                // If it's the last level (or a custom generated one), go back to menu
+                setScreen('level-select');
+            }
+        } else {
+            setScreen('level-select');
         }
-        setScreen('level-select');
     };
 
     const handleBackToMenu = () => {
@@ -67,8 +83,8 @@ export default function Target2048App() {
                     {screen === 'level-select' && (
                         <LevelSelectView
                             onSelectLevel={handleSelectLevel}
-                            onBack={handleBackToMenu} // Changed to back to menu
-                            completedLevels={completedLevels} // Pass progress
+                            onBack={handleBackToMenu}
+                            completedLevels={completedLevels}
                         />
                     )}
 
@@ -83,7 +99,7 @@ export default function Target2048App() {
                         <GameView
                             level={currentLevel}
                             onBack={() => setScreen('level-select')}
-                            onComplete={handleLevelComplete} // Pass the completion handler
+                            onComplete={handleLevelComplete}
                         />
                     )}
                 </div>

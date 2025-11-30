@@ -1,6 +1,6 @@
 // MainMenuView.tsx
 import React from 'react';
-import { Grid as GridIcon, Moon, Sun, Plus } from 'lucide-react';
+import { Grid as GridIcon, Moon, Sun, Plus, Lock } from 'lucide-react';
 
 interface MainMenuViewProps {
     onPlay: () => void;
@@ -34,10 +34,14 @@ const MainMenuView: React.FC<MainMenuViewProps> = ({ onPlay, onCreate, isDarkMod
                     <GridIcon size={24} /> Play Levels
                 </button>
 
+                {/* Grayed out / Coming Soon */}
                 <button
-                    onClick={onCreate}
-                    className="w-full py-5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-white rounded-2xl font-bold shadow-md border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-3 text-lg transition transform hover:scale-[1.02]"
+                    disabled
+                    className="w-full py-5 bg-slate-100 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 rounded-2xl font-bold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-3 text-lg cursor-not-allowed opacity-75 relative overflow-hidden"
                 >
+                    <div className="absolute top-2 right-2 bg-slate-200 dark:bg-slate-700 text-[10px] uppercase px-2 py-0.5 rounded text-slate-500 font-extrabold tracking-wide">
+                        Coming Soon
+                    </div>
                     <Plus size={24} /> Create Level
                 </button>
             </div>
