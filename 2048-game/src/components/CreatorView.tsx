@@ -32,7 +32,7 @@ const CreatorView: React.FC<CreatorViewProps> = ({ onBack, onPlayGenerated }) =>
     };
 
     return (
-        <div className="flex flex-col h-full w-full max-w-md mx-auto">
+        <div className="flex flex-col h-full w-full max-w-md mx-auto px-5 sm:px-4 lg:px-0">
             <div className="flex items-center mb-6">
                 <button onClick={onBack} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg"><ChevronRight className="rotate-180" /></button>
                 <h2 className="text-xl font-bold ml-2">Level Creator</h2>

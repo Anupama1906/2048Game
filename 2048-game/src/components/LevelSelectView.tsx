@@ -27,7 +27,7 @@ const LevelSelectView: React.FC<LevelSelectViewProps> = ({ onSelectLevel, onBack
     const completedCount = Object.keys(bestScores).length;
 
     return (
-        <div className="flex flex-col h-full w-full max-w-4xl mx-auto px-3 sm:px-4 lg:px-6 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+        <div className="flex flex-col h-full w-full max-w-4xl mx-auto px-5 sm:px-4 lg:px-6 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
             {/* Header */}
             <div className="flex items-center justify-between mb-4 sm:mb-6 lg:mb-8 pt-3 sm:pt-4 lg:pt-6 sticky top-0 z-10 bg-gradient-to-b from-slate-50 to-transparent dark:from-slate-950 dark:to-transparent pb-2 lg:pb-3">
                 <button

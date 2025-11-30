@@ -11,7 +11,7 @@ interface MainMenuViewProps {
 
 const MainMenuView: React.FC<MainMenuViewProps> = ({ onPlay, onCreate, isDarkMode, toggleDarkMode }) => {
     return (
-        <div className="flex flex-col items-center justify-center h-full w-full px-4 sm:px-6 lg:px-8 relative bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+        <div className="flex flex-col items-center justify-center h-full w-full px-6 sm:px-6 lg:px-8 relative bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
             <button
                 onClick={toggleDarkMode}
                 className="absolute top-4 right-4 sm:top-6 sm:right-6 lg:top-8 lg:right-8 p-2.5 sm:p-3 lg:p-3.5 bg-white dark:bg-slate-800 rounded-full text-slate-600 dark:text-yellow-400 transition hover:scale-110 shadow-md dark:shadow-lg hover:shadow-lg active:scale-95"

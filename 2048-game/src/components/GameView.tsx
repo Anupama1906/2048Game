@@ -114,7 +114,7 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
     };
 
     return (
-        <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto h-full min-h-[500px]">
+        <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto h-full min-h-[500px] px-5 sm:px-4 lg:px-0">
             {/* Hint Modal ... (Keep unchanged) */}
             {showHintModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
