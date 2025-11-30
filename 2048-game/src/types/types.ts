@@ -1,10 +1,15 @@
-// types.ts
+// src/types/types.ts
 export interface StationaryCell {
     type: 'stationary';
     value: number;
 }
 
-export type Cell = number | 'WALL' | StationaryCell;
+export interface GeneratorCell {
+    type: 'generator';
+    value: number;
+}
+
+export type Cell = number | 'WALL' | StationaryCell | GeneratorCell;
 export type Grid = Cell[][];
 export type GameState = 'playing' | 'won' | 'lost';
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
@@ -17,9 +22,9 @@ export interface Level {
     description: string;
     section?: string;
     par?: number;
-    grid: (number | 'W' | 'WALL' | 0 | StationaryCell)[][]; // Fixed: Now correctly a 2D array
+    grid: (number | 'W' | 'WALL' | 0 | StationaryCell | GeneratorCell)[][];
     thinWalls?: {
-        vertical: [number, number][];   // [row, col] -> Wall is to the RIGHT of this cell
-        horizontal: [number, number][]; // [row, col] -> Wall is BELOW this cell
+        vertical: [number, number][];
+        horizontal: [number, number][];
     };
 }

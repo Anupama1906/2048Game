@@ -1,6 +1,6 @@
 // src/components/GameView.tsx
 import React, { useEffect, useRef, useState } from 'react';
-import { RotateCcw, ChevronRight, Sparkles, BrainCircuit, X, Loader2, Trophy, Lock, RefreshCw, Star } from 'lucide-react';
+import { RotateCcw, ChevronRight, Sparkles, BrainCircuit, X, Loader2, Trophy, Lock, RefreshCw, Star, Factory } from 'lucide-react';
 import type { Level, Cell } from '../types/types';
 import { TILE_COLORS } from '../constants/theme';
 import { WALL } from '../constants/game';
@@ -9,7 +9,7 @@ import { callGemini } from '../utils/utils';
 
 interface GameViewProps {
     level: Level;
-    bestScore?: number; // Added Prop
+    bestScore?: number;
     onBack: () => void;
     onComplete: (moves: number) => void;
 }
@@ -18,7 +18,7 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
     // 1. Use the Hook
     const { grid, gameState, move, undo, reset, canUndo, moves } = useGame(level);
 
-    // 2. UI State (Hints, etc.)
+    // 2. UI State
     const [showHintModal, setShowHintModal] = useState(false);
     const [aiResponse, setAiResponse] = useState("");
     const [isLoadingAi, setIsLoadingAi] = useState(false);
@@ -27,7 +27,7 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
     const touchEnd = useRef<{ x: number; y: number } | null>(null);
     const boardSize = level.grid.length;
 
-    // ... (Keep existing Keyboard and Touch handlers exactly as they were) ...
+    // Controls
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (showHintModal) return;
@@ -54,7 +54,6 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) { dx > 0 ? move('LEFT') : move('RIGHT'); }
         else if (Math.abs(dy) > 30) { dy > 0 ? move('UP') : move('DOWN'); }
     }
-    // ... (End of controls) ...
 
     const handleAiHint = async () => {
         setAiResponse("");
@@ -84,29 +83,45 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
 
     const Tile = ({ value }: { value: Cell }) => {
         if (value === 0) return <div className="w-full h-full rounded-lg bg-gray-200/50 dark:bg-gray-700/50" />;
+
         if (value === WALL) return (
             <div className="w-full h-full rounded-lg bg-slate-700 shadow-inner flex items-center justify-center border-4 border-slate-800 dark:border-slate-900">
                 <Lock className="text-slate-500 w-6 h-6" />
             </div>
         );
+
         let displayValue: number;
         let isStationary = false;
+        let isGenerator = false;
+
         if (typeof value === 'object') {
             displayValue = value.value;
-            isStationary = true;
+            if (value.type === 'stationary') isStationary = true;
+            if (value.type === 'generator') isGenerator = true;
         } else {
             displayValue = value;
         }
+
         const fontSizeClass = getFontSize(displayValue);
-        const stationaryStyle = isStationary
-            ? "border-4 border-slate-400 dark:border-slate-500 ring-2 ring-slate-200 dark:ring-slate-700 z-10"
-            : "";
+
+        let extraStyle = "";
+        if (isStationary) {
+            extraStyle = "border-4 border-slate-400 dark:border-slate-500 ring-2 ring-slate-200 dark:ring-slate-700 z-10";
+        } else if (isGenerator) {
+            extraStyle = "border-4 border-dashed border-slate-600 dark:border-slate-400 z-10";
+        }
+
         return (
-            <div className={`w-full h-full rounded-lg ${TILE_COLORS[displayValue] || 'bg-gray-900 text-white'} ${stationaryStyle} shadow-sm flex items-center justify-center font-bold ${fontSizeClass} select-none animate-in zoom-in duration-200 relative overflow-hidden`}>
+            <div className={`w-full h-full rounded-lg ${TILE_COLORS[displayValue] || 'bg-gray-900 text-white'} ${extraStyle} shadow-sm flex items-center justify-center font-bold ${fontSizeClass} select-none animate-in zoom-in duration-200 relative overflow-hidden`}>
                 {displayValue}
                 {isStationary && (
                     <div className="absolute top-1 right-1 opacity-60">
                         <Lock size={14} className="text-slate-900 dark:text-white" strokeWidth={2.5} />
+                    </div>
+                )}
+                {isGenerator && (
+                    <div className="absolute top-1 right-1 opacity-60">
+                        <Factory size={14} className="text-slate-900 dark:text-white" strokeWidth={2.5} />
                     </div>
                 )}
             </div>
@@ -115,7 +130,7 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
 
     return (
         <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto h-full min-h-[500px] px-5 sm:px-4 lg:px-0">
-            {/* Hint Modal ... (Keep unchanged) */}
+            {/* Hint Modal */}
             {showHintModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 relative">
@@ -146,7 +161,7 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
                         <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{moves}</div>
                     </div>
 
-                    {/* Best Score (New) */}
+                    {/* Best Score */}
                     <div className="text-right">
                         <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1 justify-end">
                             Best
@@ -179,7 +194,7 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
                     {grid.map((row, r) => row.map((cell, c) => (
                         <div key={`${r}-${c}`} className="relative w-full h-full"><Tile value={cell} /></div>
                     )))}
-                    {/* Walls Rendering... (Keep unchanged) */}
+                    {/* Walls Rendering */}
                     {level.thinWalls?.vertical?.map(([r, c], i) => (
                         <div key={`v-${i}`} className="absolute bg-slate-800 dark:bg-slate-200 rounded-full z-10 shadow-sm"
                             style={{ width: '6px', height: `calc(${cellPct}% - 1.25*${gapRem}rem)`, top: `calc(${r * cellPct}% + ${gapRem / 2}rem)`, left: `calc(${(c + 1) * cellPct}% - ${gapRem / 2}rem )` }} />
