@@ -1,27 +1,50 @@
 // src/data/levels.ts
 import type { Level, StationaryCell } from "../types/types";
 
-// Helper for defining levels locally
+// --- HELPERS ---
+
+// Short helper for Stationary tiles
 const S = (val: number): StationaryCell => ({ type: 'stationary', value: val });
 
-export const INITIAL_LEVELS: Level[] = [
+// Helper to define a section. 
+// It automatically adds the "section" property to every level in the list.
+const createSection = (sectionName: string, levels: Omit<Level, 'section'>[]): Level[] => {
+    return levels.map(level => ({
+        ...level,
+        section: sectionName
+    }));
+};
+
+// --- SECTIONS ---
+
+const BASICS = createSection("Basics", [
     {
-        id: 1,
-        section: "Basics",
+        id: 'basics-1',
         target: 4,
         name: "The Basics",
-        description: "Combine the 2s and 4s to reach 8.",
+        description: "Combine the 2s to reach 4. Use arrows to move tiles.",
         grid: [
             [2, 0],
             [0, 2],
         ]
     },
     {
-        id: 2,
-        section: "Basics",
+        id: 'basics-2',
+        target: 16,
+        name: "The Cross",
+        description: "Merge similar numbers to reach the desired target.",
+        grid: [
+            [2, 0, 0, 2],
+            [0, 2, 2, 0],
+            [0, 2, 2, 0],
+            [2, 0, 0, 2],
+        ]
+    },
+    {
+        id: 'basics-3',
         target: 2048,
-        name: "Maze",
-        description: "Chain merges together.",
+        name: "Chain",
+        description: "Merge numbers to reach larger numbers.",
         grid: [
             [2, 2, 4, 8],
             ["W", "W", "W", 16],
@@ -29,9 +52,11 @@ export const INITIAL_LEVELS: Level[] = [
             [512, 256, 128, 64]
         ]
     },
+]);
+
+const STRATEGIES = createSection("Strategies", [
     {
-        id: 3,
-        section: "Strategies",
+        id: 'strat-1',
         target: 16,
         name: "The Corridor",
         description: "Walls block your movement. Plan ahead.",
@@ -43,8 +68,7 @@ export const INITIAL_LEVELS: Level[] = [
         ]
     },
     {
-        id: 4,
-        section: "Strategies",
+        id: 'strat-2',
         target: 32,
         name: "Cornered",
         description: "Get the 32. Don't get stuck in the corners.",
@@ -59,10 +83,12 @@ export const INITIAL_LEVELS: Level[] = [
             vertical: [[0, 0]],
             horizontal: [[0, 2]]
         }
-    },
+    }
+]);
+
+const CHALLENGES = createSection("Challenges", [
     {
-        id: 5,
-        section: "Challenges",
+        id: 'chall-1',
         target: 64,
         name: "Split Brain",
         description: "Merge across the divide.",
@@ -74,8 +100,7 @@ export const INITIAL_LEVELS: Level[] = [
         ]
     },
     {
-        id: 6,
-        section: "Challenges",
+        id: 'chall-2',
         target: 128,
         name: "The Maze",
         description: "Navigate the walls carefully.",
@@ -85,10 +110,12 @@ export const INITIAL_LEVELS: Level[] = [
             [0, 0, 'W', 0],
             [0, 0, 0, 0]
         ]
-    },
+    }
+]);
+
+const EXPERT = createSection("Expert", [
     {
-        id: 7,
-        section: "Expert",
+        id: 'expert-1',
         target: 2048,
         name: "Impossible?",
         description: "The ultimate challenge.",
@@ -98,10 +125,12 @@ export const INITIAL_LEVELS: Level[] = [
             [0, 0, 0, 32],
             ['W', 'W', 'W', 32]
         ]
-    },
+    }
+]);
+
+const MECHANICS = createSection("Mechanics", [
     {
-        id: '3',
-        section: "Mechanics",
+        id: 'mech-1',
         target: 32,
         name: "Sticky Situation",
         description: "Pinned tiles (with dots) won't move until you merge them.",
@@ -111,5 +140,15 @@ export const INITIAL_LEVELS: Level[] = [
             [0, 0, 0, 0],
             [S(8), 0, 0, S(8)]
         ]
-    },
+    }
+]);
+
+// --- EXPORT ---
+// Combine all sections here. The order here determines the order in the menu.
+export const INITIAL_LEVELS: Level[] = [
+    ...BASICS,
+    ...STRATEGIES,
+    ...CHALLENGES,
+    ...EXPERT,
+    ...MECHANICS
 ];

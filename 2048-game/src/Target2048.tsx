@@ -1,5 +1,5 @@
 // src/Target2048.tsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { AppScreen, Level } from './types/types';
 import MainMenuView from './components/MainMenuView';
 import LevelSelectView from './components/LevelSelectView';

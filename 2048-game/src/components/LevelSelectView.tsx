@@ -1,8 +1,8 @@
 // LevelSelectView.tsx
 import React from 'react';
-import { ChevronRight, Lock, Star } from 'lucide-react';
+import { ChevronRight, Star } from 'lucide-react';
 import type { Level } from '../types/types';
-import { INITIAL_LEVELS } from '../data/levels';
+import { INITIAL_LEVELS } from '../data/levels'; // Ensure this points to your new data file
 
 interface LevelSelectViewProps {
     onSelectLevel: (l: Level) => void;
@@ -11,16 +11,22 @@ interface LevelSelectViewProps {
 }
 
 const LevelSelectView: React.FC<LevelSelectViewProps> = ({ onSelectLevel, onBack, completedLevels = new Set() }) => {
-    // Group levels by section
+
+    // 1. Group levels by section
+    // We use a Map or Set to track unique sections IN ORDER of appearance
     const sections: Record<string, Level[]> = {};
+    const sectionOrder = new Set<string>();
+
     INITIAL_LEVELS.forEach(l => {
         const sec = l.section || "Misc";
+        sectionOrder.add(sec); // Adds to the set only if not present, preserving insertion order
+
         if (!sections[sec]) sections[sec] = [];
         sections[sec].push(l);
     });
 
-    const sectionOrder = ["Basics", "Strategies", "Challenges", "Expert", "Misc"];
-    const orderedSections = sectionOrder.filter(s => sections[s]);
+    // Convert Set to Array to render
+    const dynamicSectionList = Array.from(sectionOrder);
 
     return (
         <div className="flex flex-col h-full w-full max-w-2xl mx-auto px-4">
@@ -44,13 +50,17 @@ const LevelSelectView: React.FC<LevelSelectViewProps> = ({ onSelectLevel, onBack
             {/* Level Grid */}
             <div className="flex-1 overflow-y-auto pb-8 custom-scrollbar">
                 <div className="space-y-10">
-                    {orderedSections.map((sectionName, sectionIndex) => {
+                    {dynamicSectionList.map((sectionName, sectionIndex) => {
                         const levels = sections[sectionName];
+
+                        // Dynamic cycling colors for sections
                         const sectionColors = [
                             'from-blue-500 to-indigo-600',
                             'from-purple-500 to-pink-600',
                             'from-orange-500 to-red-600',
-                            'from-emerald-500 to-teal-600'
+                            'from-emerald-500 to-teal-600',
+                            'from-cyan-500 to-blue-600',
+                            'from-rose-500 to-pink-600'
                         ];
                         const gradientClass = sectionColors[sectionIndex % sectionColors.length];
 
@@ -75,7 +85,8 @@ const LevelSelectView: React.FC<LevelSelectViewProps> = ({ onSelectLevel, onBack
                                 <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
                                     {levels.map((level, index) => {
                                         const isCompleted = completedLevels.has(level.id);
-                                        const levelNumber = index + 1;
+                                        // Level number is its index in the overall list + 1
+                                        const globalIndex = INITIAL_LEVELS.findIndex(l => l.id === level.id) + 1;
 
                                         return (
                                             <button
@@ -92,21 +103,21 @@ const LevelSelectView: React.FC<LevelSelectViewProps> = ({ onSelectLevel, onBack
                                                     </div>
                                                 )}
 
-                                                {/* Content */}
+                                                {/* Number */}
                                                 <div className="flex-1 flex items-center justify-center">
                                                     <div className="text-3xl font-black text-slate-800 dark:text-slate-200 group-hover:scale-110 transition-transform">
-                                                        {levelNumber}
+                                                        {globalIndex}
                                                     </div>
                                                 </div>
 
-                                                {/* Level Name (Visible Always) */}
+                                                {/* Level Name */}
                                                 <div className="w-full text-center mt-auto pt-1">
                                                     <div className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-tight leading-tight line-clamp-2">
                                                         {level.name}
                                                     </div>
                                                 </div>
 
-                                                {/* Hover Effect Overlay */}
+                                                {/* Hover Overlay */}
                                                 <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/5 transition-colors pointer-events-none" />
                                             </button>
                                         );

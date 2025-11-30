@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { RotateCcw, ChevronRight, Sparkles, BrainCircuit, X, Loader2, Trophy, Lock, RefreshCw, Pin } from 'lucide-react';
-import type { Level, Cell, Direction } from '../types/types';
+import { RotateCcw, ChevronRight, Sparkles, BrainCircuit, X, Loader2, Trophy, Lock, RefreshCw} from 'lucide-react';
+import type { Level, Cell } from '../types/types';
 import { TILE_COLORS } from '../constants/theme';
 import { WALL } from '../constants/game';
 import { useGame } from '../hooks/usegame';

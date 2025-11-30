@@ -1,4 +1,4 @@
-import type { Level } from '../types/types';
+
 
 // Use environment variable for API key (Vite standard)
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";

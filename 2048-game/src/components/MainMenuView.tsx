@@ -1,6 +1,6 @@
 // MainMenuView.tsx
 import React from 'react';
-import { Grid as GridIcon, Moon, Sun, Plus, Lock } from 'lucide-react';
+import { Grid as GridIcon, Moon, Sun, Plus } from 'lucide-react';
 
 interface MainMenuViewProps {
     onPlay: () => void;
