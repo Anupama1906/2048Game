@@ -1,9 +1,10 @@
 // src/data/levels.ts
-import type { Level, StationaryCell, GeneratorCell } from "../types/types";
+import type { Level, StationaryCell, GeneratorCell, StickyCell } from "../types/types";
 
 // --- HELPERS ---
 const S = (val: number): StationaryCell => ({ type: 'stationary', value: val });
 const G = (val: number): GeneratorCell => ({ type: 'generator', value: val });
+const P = (val: number): StickyCell => ({ type: 'sticky', value: val });
 
 const createSection = (sectionName: string, levels: Omit<Level, 'section'>[]): Level[] => {
     return levels.map(level => ({
@@ -161,8 +162,8 @@ const MECHANICS = createSection("Mechanics", [
         name: "Power Plant",
         description: "Generators (Factory icon) spawn new numbers when you clear the space.",
         grid: [
-            [G(2), 0, 0, G(2)],
-            [0, 0, 0, 0]
+            [0, P(0), P(0), 0],
+            [2, 'W', 'W', 2]
         ]
     }
 ]);
@@ -180,13 +181,18 @@ const NEGETIVITY = createSection("Negetivity", [
     },
     {
         id: 'neg-2',
-        target: 8,
+        target: 32,
         name: "Collison",
         description: "Merge positive and negetive tiles to cancel them out!",
         grid: [
-            ['W', 'W', -2, 'W', 'W'],
-            [4, 0, 2, 0, 4]
-        ]
+            ['W', 0, -2, 'W', 'W'],
+            [16, S(2), 0, S(8), S(16)],
+            ['W', 'W', -8, 0, 'W']
+        ],
+        thinWalls: {
+            vertical: [],
+            horizontal: [[0, 2], [1, 2]]
+        }
     },
     {
         id: 'neg-3',

@@ -9,7 +9,15 @@ export interface GeneratorCell {
     value: number;
 }
 
-export type Cell = number | 'WALL' | StationaryCell | GeneratorCell;
+// NEW: Sticky Cell Definition
+export interface StickyCell {
+    type: 'sticky';
+    value: number;
+}
+
+export type Cell = number | 'WALL' | StationaryCell | GeneratorCell | StickyCell;
+
+// ... (rest of the file remains the same)
 export type Grid = Cell[][];
 export type GameState = 'playing' | 'won' | 'lost';
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
@@ -22,7 +30,7 @@ export interface Level {
     description: string;
     section?: string;
     par?: number;
-    grid: (number | 'W' | 'WALL' | 0 | StationaryCell | GeneratorCell)[][];
+    grid: (number | 'W' | 'WALL' | 0 | StationaryCell | GeneratorCell | StickyCell)[][];
     thinWalls?: {
         vertical: [number, number][];
         horizontal: [number, number][];

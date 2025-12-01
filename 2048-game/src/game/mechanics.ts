@@ -1,29 +1,42 @@
-import type { Cell, StationaryCell, GeneratorCell } from '../types/types';
+// src/game/mechanics.ts
+import type { Cell, StationaryCell, GeneratorCell, StickyCell } from '../types/types';
 import { WALL } from '../constants/game';
 
-/**
- * MECHANICS CONFIGURATION
- */
+// --- HELPERS ---
 
-// Helper: Check if a cell is stationary
 export const isStationary = (cell: Cell): cell is StationaryCell => {
     return typeof cell === 'object' && cell !== null && (cell as any).type === 'stationary';
 };
 
-// Helper: Check if a cell is a generator
 export const isGenerator = (cell: Cell): cell is GeneratorCell => {
     return typeof cell === 'object' && cell !== null && (cell as any).type === 'generator';
 };
 
-// Helper: Get numeric value of any cell (returns 0 for walls/empty)
+// NEW: Helper for Sticky
+export const isSticky = (cell: Cell): cell is StickyCell => {
+    return typeof cell === 'object' && cell !== null && (cell as any).type === 'sticky';
+};
+
 export const getCellValue = (cell: Cell): number => {
     if (typeof cell === 'number') return cell;
     if (isStationary(cell)) return cell.value;
     if (isGenerator(cell)) return cell.value;
+    if (isSticky(cell)) return cell.value; // Sticky cells have values
     return 0;
 };
 
-// Rule: Can tile A merge into tile B?
+// Helper: Create an empty version of a cell (preserving type if it's Sticky)
+const makeEmpty = (cell: Cell): Cell => {
+    if (isSticky(cell)) return { type: 'sticky', value: 0 };
+    return 0;
+};
+
+// Helper: Put a value INTO a cell (preserving type if Sticky)
+const updateCellValue = (cell: Cell, newVal: number): Cell => {
+    if (isSticky(cell)) return { type: 'sticky', value: newVal };
+    return newVal;
+};
+
 export const canMerge = (a: Cell, b: Cell): boolean => {
     if (a === WALL || b === WALL) return false;
     if (isGenerator(a) || isGenerator(b)) return false;
@@ -32,59 +45,86 @@ export const canMerge = (a: Cell, b: Cell): boolean => {
     const valB = getCellValue(b);
     if (valA === 0 || valB === 0) return false;
 
-    // 1. Same value (e.g. 2 and 2, or -2 and -2)
-    // 2. Opposite value (e.g. 2 and -2) -> Cancel out
+    // Standard 2048 merge rules
     return valA === valB || valA === -valB;
 };
 
-// Rule: What happens when they merge?
 export const getMergeResult = (valA: number, valB: number): number => {
-    if (valA === -valB) return 0; // Cancel out
-    return valA * 2; // Standard merge (preserves sign)
+    if (valA === -valB) return 0;
+    return valA * 2;
 };
 
-// Rule: Is this cell a Hard Obstacle (Wall or Generator)?
 export const isHardObstacle = (cell: Cell): boolean => {
     return cell === WALL || isGenerator(cell);
 };
 
-// Internal Interface for processing with metadata
 interface ProcessResult {
     grid: Cell[];
-    merged: boolean[]; // Tracks if a tile at index i was created by a merge in this step
+    merged: boolean[];
 }
 
 /**
- * Standard 2048 Logic - slides tiles left and merges
- * Returns metadata about which tiles were merged
+ * UPDATED: Slide and Merge Logic that supports Sticky Cells.
+ * Instead of "filter zeros -> process -> pad", we iterate and move tiles
+ * to respect the physical location of Sticky Cells (P).
  */
-const slideAndMergeWithStatus = (tiles: Cell[]): ProcessResult => {
-    let result: Cell[] = [];
-    let mergedFlags: boolean[] = [];
-    let i = 0;
+const slideAndMergeWithSticky = (chunk: Cell[]): ProcessResult => {
+    const result = [...chunk]; // Work on a copy
+    const mergedFlags = new Array(chunk.length).fill(false);
 
-    while (i < tiles.length) {
-        const current = tiles[i];
-        const next = tiles[i + 1];
+    // Iterate Left-to-Right (skipping index 0 as it can't move left)
+    for (let i = 1; i < result.length; i++) {
+        // We only move things that have a value
+        if (getCellValue(result[i]) === 0) continue;
 
-        if (next !== undefined && canMerge(current, next)) {
-            // Merge the two tiles
-            const valA = getCellValue(current);
-            const valB = getCellValue(next);
-            const mergedVal = getMergeResult(valA, valB);
+        let currentIdx = i;
 
-            // Only add to result if it didn't cancel out to 0
-            if (mergedVal !== 0) {
-                result.push(mergedVal);
-                mergedFlags.push(true); // Mark as newly merged
+        // Bubble the tile to the left as far as it can go
+        while (currentIdx > 0) {
+            const leftIdx = currentIdx - 1;
+            const currentCell = result[currentIdx];
+            const leftCell = result[leftIdx];
+            const currentVal = getCellValue(currentCell);
+            const leftVal = getCellValue(leftCell);
+
+            // 1. Left is EMPTY (0) or EMPTY STICKY P(0)
+            if (leftVal === 0) {
+                if (isSticky(leftCell)) {
+                    // HIT EMPTY STICKY: Move INTO it and STOP immediately.
+                    result[leftIdx] = updateCellValue(leftCell, currentVal);
+                    result[currentIdx] = makeEmpty(currentCell);
+                    break; // Stop! It stuck.
+                } else {
+                    // STANDARD EMPTY SPACE: Move into it and continue loop
+                    result[leftIdx] = updateCellValue(leftCell, currentVal);
+                    result[currentIdx] = makeEmpty(currentCell);
+                    currentIdx--; // Keep looking left
+                    continue;
+                }
             }
 
-            i += 2; // Skip both tiles
-        } else {
-            // No merge, just add current
-            result.push(current);
-            mergedFlags.push(false); // Existing tile slid
-            i += 1;
+            // 2. Left has VALUE (Merge Candidate)
+            if (canMerge(currentCell, leftCell) && !mergedFlags[leftIdx] && !mergedFlags[currentIdx]) {
+                const incomingStationary = isStationary(currentCell);
+
+                // Prevent stationary from moving (it can only receive, not initiate)
+                // But wait, stationary is handled by chunk splitting usually. 
+                // If we are here, 'current' is likely a normal or sticky tile.
+                if (!incomingStationary) {
+                    const newVal = getMergeResult(currentVal, leftVal);
+
+                    // Update Left Cell with new value
+                    result[leftIdx] = updateCellValue(leftCell, newVal);
+                    // Clear Current Cell
+                    result[currentIdx] = makeEmpty(currentCell);
+
+                    mergedFlags[leftIdx] = true; // Mark as merged
+                    break; // Stop after merge
+                }
+            }
+
+            // 3. Blocked by non-mergeable value
+            break;
         }
     }
 
@@ -92,75 +132,60 @@ const slideAndMergeWithStatus = (tiles: Cell[]): ProcessResult => {
 };
 
 /**
- * Process a chunk that may contain stationary tiles
+ * Process a chunk that may contain stationary tiles.
+ * Note: Sticky Cells are NOT chunk separators (unlike Stationary/Walls).
+ * They are handled INSIDE slideAndMergeWithSticky.
  */
-const processChunkWithStatus = (chunk: Cell[]): ProcessResult => {
+const processChunkWithStationary = (chunk: Cell[]): ProcessResult => {
+    // 1. Find Stationary Cells (Hard anchors)
     const firstStatIdx = chunk.findIndex(c => isStationary(c));
 
     if (firstStatIdx === -1) {
-        const movable = chunk.filter(c => getCellValue(c) !== 0);
-        const { grid, merged } = slideAndMergeWithStatus(movable);
-
-        // Pad with zeros to restore length
-        const finalGrid = [...grid];
-        const finalMerged = [...merged];
-        while (finalGrid.length < chunk.length) {
-            finalGrid.push(0);
-            finalMerged.push(false);
-        }
-        return { grid: finalGrid, merged: finalMerged };
+        // No stationary cells? Run the Sticky-aware slider
+        return slideAndMergeWithSticky(chunk);
     }
 
+    // 2. Handle Stationary Split
     const stationaryCell = chunk[firstStatIdx] as StationaryCell;
     const leftPart = chunk.slice(0, firstStatIdx);
     const rightPart = chunk.slice(firstStatIdx + 1);
 
-    // 1. Process Left Side
-    const leftMovable = leftPart.filter(c => getCellValue(c) !== 0);
-    const leftRes = slideAndMergeWithStatus(leftMovable);
-    const leftGrid = [...leftRes.grid];
-    const leftMerged = [...leftRes.merged];
-    while (leftGrid.length < leftPart.length) {
-        leftGrid.push(0);
-        leftMerged.push(false);
-    }
+    // Process Left Side
+    const leftRes = slideAndMergeWithSticky(leftPart);
 
-    // 2. Process Right Side (Recursively)
-    const rightRes = processChunkWithStatus(rightPart);
+    // Process Right Side
+    const rightRes = processChunkWithStationary(rightPart); // Recursive for multiple stationary cells
 
-    // 3. Check interaction between Right Side and Stationary Cell
+    // 3. Attempt to merge from Right Result into the Stationary Cell
     const incomingTileIdx = rightRes.grid.findIndex(c => getCellValue(c) !== 0);
     const incomingTile = incomingTileIdx !== -1 ? rightRes.grid[incomingTileIdx] : 0;
     const isIncomingMerged = incomingTileIdx !== -1 ? rightRes.merged[incomingTileIdx] : false;
 
-    // Check if we can merge the incoming tile into the stationary one
-    // CRITICAL FIX: Do NOT merge if the incoming tile was *already* merged in this step.
+    // Check Merge Conditions
     if (incomingTile !== 0 &&
         !isStationary(incomingTile) &&
-        !isIncomingMerged && // <--- Prevents double merge (e.g. 4+4=8, then 8+s(8)=16 in one move)
+        !isIncomingMerged &&
         canMerge(incomingTile, stationaryCell)) {
 
         const valIn = getCellValue(incomingTile);
         const valStat = getCellValue(stationaryCell);
         const mergedValue = getMergeResult(valIn, valStat);
 
-        // Remove incoming tile from right side (it merged into stationary position)
-        const rightRemainderGrid = [...rightRes.grid];
-        rightRemainderGrid[incomingTileIdx] = 0; // Replace with empty space
+        // Remove incoming from right grid
+        const rightGridMod = [...rightRes.grid];
+        rightGridMod[incomingTileIdx] = makeEmpty(incomingTile);
 
-        // Re-compact the right side to fill the gap
-        // Since we are in a "slide" phase, holes should be filled immediately
-        const compactedRight = processChunkWithStatus(rightRemainderGrid);
+        // Compact the hole on the right
+        const compactedRight = slideAndMergeWithSticky(rightGridMod); // Use sticky logic for compacting
 
         return {
-            grid: [...leftGrid, mergedValue, ...compactedRight.grid],
-            merged: [...leftMerged, true, ...compactedRight.merged] // stationary slot is now "merged"
+            grid: [...leftRes.grid, mergedValue, ...compactedRight.grid],
+            merged: [...leftRes.merged, true, ...compactedRight.merged]
         };
     } else {
-        // No merge with stationary (either blocked, mismatch, or incoming was already merged)
         return {
-            grid: [...leftGrid, stationaryCell, ...rightRes.grid],
-            merged: [...leftMerged, false, ...rightRes.merged]
+            grid: [...leftRes.grid, stationaryCell, ...rightRes.grid],
+            merged: [...leftRes.merged, false, ...rightRes.merged]
         };
     }
 };
@@ -176,15 +201,22 @@ export const processRow = (line: Cell[]): Cell[] => {
         const cell = line[i];
 
         if (isHardObstacle(cell)) {
+            // Process buffer
             let processingInput = [...buffer];
+            // Generators feed into the buffer but act as walls
             if (isGenerator(cell)) {
                 processingInput.push(cell.value);
             }
 
-            // Process the buffer (chunk)
-            let processedRes = processChunkWithStatus(processingInput);
-            let processed = processedRes.grid;
+            let processedRes = processChunkWithStationary(processingInput);
 
+            // If generator, pop the last element (it was the generator seed)
+            let processed = processedRes.grid;
+            if (isGenerator(cell)) {
+                processed.pop();
+            }
+
+            // Fill buffer space (Sticky logic preserves length, but just in case)
             const fitted = processed.slice(0, buffer.length);
             while (fitted.length < buffer.length) fitted.push(0);
 
@@ -197,7 +229,7 @@ export const processRow = (line: Cell[]): Cell[] => {
     }
 
     if (buffer.length > 0) {
-        let processedRes = processChunkWithStatus(buffer);
+        let processedRes = processChunkWithStationary(buffer);
         let processed = processedRes.grid;
         while (processed.length < buffer.length) processed.push(0);
         result.push(...processed);
