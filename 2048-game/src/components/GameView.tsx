@@ -1,11 +1,10 @@
 // src/components/GameView.tsx
-import React, { useEffect, useRef, useState } from 'react';
-import { RotateCcw, ChevronRight, Sparkles, BrainCircuit, X, Loader2, Trophy, Lock, RefreshCw, Star, Factory, Magnet } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { RotateCcw, ChevronRight, Trophy, Lock, RefreshCw, Star, Factory, Magnet } from 'lucide-react';
 import type { Level, Cell } from '../types/types';
 import { TILE_COLORS } from '../constants/theme';
 import { WALL } from '../constants/game';
 import { useGame } from '../hooks/usegame';
-import { callGemini } from '../utils/utils';
 
 interface GameViewProps {
     level: Level;
@@ -19,10 +18,7 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
     // 1. Use the Hook
     const { grid, gameState, move, undo, reset, canUndo, moves } = useGame(level);
 
-    // 2. UI State
-    const [showHintModal, setShowHintModal] = useState(false);
-    const [aiResponse, setAiResponse] = useState("");
-    const [isLoadingAi, setIsLoadingAi] = useState(false);
+    // 2. UI State (Hint system removed)
 
     const touchStart = useRef<{ x: number; y: number } | null>(null);
     const touchEnd = useRef<{ x: number; y: number } | null>(null);
@@ -35,7 +31,6 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
     const boardSize = Math.max(rows, cols);
 
     // Responsive Gap Logic
-    // Denser grids get smaller gaps to prevent squishing on mobile
     let gapClass = 'gap-3';
     let gapRem = 0.75; // 12px
 
@@ -50,7 +45,6 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
     // Controls
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (showHintModal) return;
             switch (e.key) {
                 case 'ArrowUp': move('UP'); break;
                 case 'ArrowDown': move('DOWN'); break;
@@ -60,7 +54,7 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [move, showHintModal]);
+    }, [move]);
 
     // Auto-save score on win
     useEffect(() => {
@@ -84,20 +78,6 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) { dx > 0 ? move('LEFT') : move('RIGHT'); }
         else if (Math.abs(dy) > 30) { dy > 0 ? move('UP') : move('DOWN'); }
     }
-
-    const handleAiHint = async () => {
-        setAiResponse("");
-        setIsLoadingAi(true);
-        try {
-            const prompt = `I am playing a 2048 puzzle. Current Grid: ${JSON.stringify(grid)}. Target: ${level.target}. Moves taken: ${moves}. Give me a short hint.`;
-            const response = await callGemini(prompt, "You are a puzzle coach.");
-            setAiResponse(response);
-        } catch (error) {
-            setAiResponse("Hint unavailable.");
-        } finally {
-            setIsLoadingAi(false);
-        }
-    };
 
     const getFontSize = (val: number) => {
         const len = val.toString().length;
@@ -173,24 +153,6 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
 
     return (
         <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto h-full min-h-[500px] px-5 sm:px-4 lg:px-0">
-            {/* Hint Modal */}
-            {showHintModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 relative">
-                        <button onClick={() => setShowHintModal(false)} className="absolute top-4 right-4 text-slate-400"><X size={20} /></button>
-                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-indigo-600 dark:text-indigo-400"><BrainCircuit /> AI Coach</h3>
-                        {aiResponse ? (
-                            <p className="text-slate-700 dark:text-slate-300 bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded-lg">{aiResponse}</p>
-                        ) : (
-                            <div className="text-center py-4">
-                                {isLoadingAi ? <Loader2 className="animate-spin mx-auto text-indigo-500" /> :
-                                    <button onClick={handleAiHint} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold">Analyze Board</button>}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
             {/* Header */}
             <div className="w-full flex justify-between items-center mb-6">
                 <button onClick={onBack} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition text-slate-600 dark:text-slate-300 flex items-center gap-1">
@@ -239,16 +201,13 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
                         </div>
                     )))}
 
-                    {/* Walls Rendering - Corrected Logic */}
+                    {/* Walls Rendering */}
                     {level.thinWalls?.vertical?.map(([r, c], i) => (
                         <div key={`v-${i}`} className="absolute bg-slate-800 dark:bg-slate-200 rounded-full z-10 shadow-sm"
                             style={{
                                 width: '6px',
-                                height: `calc(${100 / rows}% - ${1.25 * gapRem}rem)`, // Height of one cell (approx)
-                                // Top: Start of row r + half gap
+                                height: `calc(${100 / rows}% - ${1.25 * gapRem}rem)`,
                                 top: `calc(${r * 100 / rows}% + ${gapRem}rem * (${r / rows} + 0.5))`,
-                                // Left: After column c (c+1). Center of the gap.
-                                // Formula: (c+1)/cols * 100% + gap * ((c+1)/cols - 0.5) - 3px
                                 left: `calc( ${(c + 1) * 100 / cols}% + ${gapRem}rem * (${(c + 1) / cols} - 0.5) - 3px )`
                             }} />
                     ))}
@@ -256,11 +215,8 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
                         <div key={`h-${i}`} className="absolute bg-slate-800 dark:bg-slate-200 rounded-full z-10 shadow-sm"
                             style={{
                                 height: '6px',
-                                width: `calc(${100 / cols}% - ${gapRem}rem)`, // Width of one cell (approx)
-                                // Left: Start of col c + half gap
+                                width: `calc(${100 / cols}% - ${gapRem}rem)`,
                                 left: `calc(${c * 100 / cols}% + ${gapRem}rem * (${c / cols} + 0.5))`,
-                                // Top: After row r (r+1). Center of the gap.
-                                // Formula: (r+1)/rows * 100% + gap * ((r+1)/rows - 0.5) - 3px
                                 top: `calc( ${(r + 1) * 100 / rows}% + ${gapRem}rem * (${(r + 1) / rows} - 0.5) - 3px )`
                             }} />
                     ))}
@@ -296,7 +252,6 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
             <div className="flex gap-4 w-full justify-center">
                 <button onClick={undo} disabled={!canUndo} className="p-3 bg-white dark:bg-slate-800 shadow rounded-xl text-slate-600 dark:text-slate-300 disabled:opacity-50 transition"><RotateCcw size={20} /></button>
                 <button onClick={reset} className="p-3 bg-white dark:bg-slate-800 shadow rounded-xl text-slate-600 dark:text-slate-300 transition"><RefreshCw size={20} /></button>
-                <button onClick={() => setShowHintModal(true)} className="p-3 bg-indigo-100 dark:bg-indigo-900/50 shadow rounded-xl text-indigo-600 dark:text-indigo-300 flex items-center gap-2 font-semibold transition"><Sparkles size={18} /> Hint</button>
             </div>
         </div>
     );

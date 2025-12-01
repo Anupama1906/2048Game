@@ -20,7 +20,7 @@ export default function Target2048App() {
         }
         return {};
     });
-
+    
     const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
     useEffect(() => {

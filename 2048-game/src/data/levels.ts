@@ -41,19 +41,6 @@ const BASICS = createSection("Basics", [
     },
     {
         id: 'basics-3',
-        target: 64,
-        name: "Getting Bigger",
-        description: "Try to reach the target with fewer moves ;)",
-        par: 10,
-        grid: [
-            [4, 2, 2, 4],
-            [2, 8, 8, 2],
-            [2, 8, 8, 2],
-            [4, 2, 2, 4]
-        ]
-    },
-    {
-        id: 'basics-4',
         target: 512,
         name: "Combinations",
         description: "Try to reach the goal with few moves.",
@@ -65,6 +52,20 @@ const BASICS = createSection("Basics", [
             [128, 64, 32, 16]
         ]
     },
+    {
+        id: 'basics-4',
+        target: 64,
+        name: "Efficient Merging",
+        description: "Complete the level with fewest possible moves to recieve a star. ",
+        par: 10,
+        grid: [
+            [4, 2, 2, 4],
+            [2, 8, 8, 2],
+            [2, 8, 8, 2],
+            [4, 2, 2, 4]
+        ]
+    }
+
 ]);
 
 const WALLS = createSection("Walls", [
@@ -77,9 +78,9 @@ const WALLS = createSection("Walls", [
         grid: [
             [0, 0, 0, 0, 0],
             [0, 'W', 'W', 'W', 0],
-            [0, 'W', 2, 'W', 0],
-            [2, 'W', 0, 'W', 0],
-            ['W', 'W', 0, 0, 0]
+            [0, 'W', 2048, 'W', 0],
+            [0, 'W', 'W', 'W', 0],
+            [0, 2, 'W', 2, 0]
         ]
     },
     {
@@ -107,76 +108,83 @@ const WALLS = createSection("Walls", [
             [0, 'W', 'W', 'W'],
             [0, 'W', 'W', 'W']
         ]
-    }
-]);
-
-const CHALLENGES = createSection("Challenges", [
-    {
-        id: 'chall-1',
-        target: 64,
-        name: "Split Brain",
-        description: "Merge across the divide.",
-        grid: [
-            [16, 0, 'W', 16],
-            [8, 0, 'W', 8],
-            [4, L(4), 0, 4],
-            [0, 0, 0, 4]
-        ]
     },
     {
-        id: 'chall-2',
-        target: 128,
-        name: "The Maze",
-        description: "Navigate the walls carefully.",
+        id: 'wall-4',
+        target: 4,
+        name: "4 Rooms",
+        description: "Thin walls block movement between cells.",
+        par: 8,
         grid: [
-            [32, 'W', 64, 0],
-            [32, 'W', 0, 0],
-            [0, 0, 'W', 0],
-            [0, 0, 0, 0]
-        ]
-    }
-]);
-
-const EXPERT = createSection("Expert", [
-    {
-        id: 'expert-1',
-        target: 2048,
-        name: "Impossible?",
-        description: "The ultimate challenge.",
-        grid: [
-            [1024, 512, 256, 128],
-            [0, 0, 0, 64],
-            [0, 0, 0, 32],
-            ['W', 'W', 'W', 32]
+            [2, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [2, 0, 0, 0]
         ],
         thinWalls: {
-            vertical: [[0, 0], [1, 0], [2, 0]],
-            horizontal: [[0, 2]]
+            vertical: [[0, 1], [3, 1]],
+            horizontal: [[1, 0], [1, 1], [1, 3]]
         }
+
     }
+
 ]);
 
-const MECHANICS = createSection("Mechanics", [
+const LOCKS = createSection("Locks", [
     {
-        id: 'mech-1',
+        id: 'lock-1',
         target: 32,
-        name: "Sticky Situation",
-        description: "Pinned tiles (with dots) won't move until you merge them.",
+        name: "Locked Up",
+        description: "Locked cells cannot be moved or merged until they are unlocked.",
+        par: 9,
         grid: [
-            [L(2), 0, 0, L(2)],
-            [0, 4, 4, 0],
-            [0, 0, 0, 0],
-            [L(8), 0, 0, L(8)]
+            [0, 0, 0, 4],
+            [0, 0, L(4), 0],
+            [0, L(8), 0, 0],
+            [16, 0, 0, 0]
         ]
     },
     {
-        id: 'mech-2',
-        target: 64,
-        name: "Power Plant",
-        description: "Generators (Factory icon) spawn new numbers when you clear the space.",
+        id: 'lock-2',
+        target: 2048,
+        name: "Unlocker",
+        description: "Merging Locked tiles stops movement.Use it to your advantage",
+        par: 13,
         grid: [
-            [0, S(0), S(0), 0],
-            [2, 'W', 'W', 2]
+            [L(512), 0, L(128), 0],
+            [L(16), 2, L(8), L(256)],
+            [0, L(2), L(4), 0],
+            [L(32), 0, L(64), L(1024)]
+        ]
+    }
+]);
+
+const STICKY = createSection("Sticky", [
+    {
+        id: 'stick-1',
+        target: 32,
+        name: "Sticky Situation",
+        description: "Sticky tiles prevent further movement",
+        grid: [
+            [2, S(0), L(8), 0],
+            [L(16), 0, 0, S(0)],
+            [L(4), 0, S(0), S(0)],
+            [0, L(2), 0, 0]
+        ]
+    },
+]);
+
+const GENERATORS = createSection("Generators", [
+    {
+        id: 'gen-1',
+        target: 32,
+        name: "Factory",
+        description: "Generators create numbers",
+        par: 23,
+        grid: [
+            [G(2), 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
         ]
     }
 ]);
@@ -207,18 +215,6 @@ const NEGETIVITY = createSection("Negetivity", [
             horizontal: [[0, 2], [1, 2]]
         }
     },
-    {
-        id: 'neg-3',
-        target: 8,
-        name: "Antimatter",
-        description: "Blue tiles are negative. Merge +2 and -2 to cancel them out!",
-        grid: [
-            [2, -2, 0, 0],
-            [-4, 4, 0, 0],
-            [2, 2, -4, 0],
-            [0, 0, 0, 0]
-        ]
-    }
 ]);
 const MISCELLANEOUS = createSection("Miscellaneous", [
     {
@@ -229,9 +225,9 @@ const MISCELLANEOUS = createSection("Miscellaneous", [
         grid: [
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 2, 0, 0, 'W', 0, 0],
+            [0, 0, 2, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 'W', 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, L(2), 0, 0, 0]
@@ -272,9 +268,9 @@ const MISCELLANEOUS = createSection("Miscellaneous", [
 export const INITIAL_LEVELS: Level[] = [
     ...BASICS,
     ...WALLS,
-    ...CHALLENGES,
-    ...EXPERT,
-    ...MECHANICS,
+    ...LOCKS,
+    ...STICKY,
+    ...GENERATORS,
     ...NEGETIVITY,
     ...MISCELLANEOUS
 ];
