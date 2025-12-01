@@ -1,4 +1,3 @@
-// src/data/levels.ts
 import type { Level, LockedCell, GeneratorCell, StickyCell } from "../types/types";
 
 // --- HELPERS ---
@@ -12,8 +11,6 @@ const createSection = (sectionName: string, levels: Omit<Level, 'section'>[]): L
         section: sectionName
     }));
 };
-
-// ... (Previous Sections: BASICS, STRATEGIES, CHALLENGES, EXPERT remain unchanged) ...
 
 const BASICS = createSection("Basics", [
     {
@@ -56,7 +53,7 @@ const BASICS = createSection("Basics", [
         id: 'basics-4',
         target: 64,
         name: "Efficient Merging",
-        description: "Complete the level with fewest possible moves to recieve a star. ",
+        description: "Complete the level with fewest possible moves to receive a star.",
         par: 10,
         grid: [
             [4, 2, 2, 4],
@@ -65,7 +62,6 @@ const BASICS = createSection("Basics", [
             [4, 2, 2, 4]
         ]
     }
-
 ]);
 
 const WALLS = createSection("Walls", [
@@ -100,7 +96,7 @@ const WALLS = createSection("Walls", [
         id: 'wall-3',
         target: 16,
         name: "Cornered",
-        description: "Plan Carefully. Use undo if you got stuck.",
+        description: "Plan Carefully. Use undo if you get stuck.",
         par: 5,
         grid: [
             [2, 2, 0, 2],
@@ -125,9 +121,7 @@ const WALLS = createSection("Walls", [
             vertical: [[0, 1], [3, 1]],
             horizontal: [[1, 0], [1, 1], [1, 3]]
         }
-
     }
-
 ]);
 
 const LOCKS = createSection("Locks", [
@@ -148,7 +142,7 @@ const LOCKS = createSection("Locks", [
         id: 'lock-2',
         target: 2048,
         name: "Unlocker",
-        description: "Merging Locked tiles stops movement.Use it to your advantage",
+        description: "Merging locked tiles stops movement. Use it to your advantage.",
         par: 13,
         grid: [
             [L(512), 0, L(128), 0],
@@ -164,14 +158,14 @@ const STICKY = createSection("Sticky", [
         id: 'stick-1',
         target: 32,
         name: "Sticky Situation",
-        description: "Sticky tiles prevent further movement",
+        description: "Sticky tiles prevent further movement.",
         grid: [
             [2, S(0), L(8), 0],
             [L(16), 0, 0, S(0)],
             [L(4), 0, S(0), S(0)],
             [0, L(2), 0, 0]
         ]
-    },
+    }
 ]);
 
 const GENERATORS = createSection("Generators", [
@@ -179,22 +173,23 @@ const GENERATORS = createSection("Generators", [
         id: 'gen-1',
         target: 32,
         name: "Factory",
-        description: "Generators create numbers",
+        description: "Generators create numbers.",
         par: 23,
         grid: [
             [G(2), 0, 0],
             [0, 0, 0],
-            [0, 0, 0],
+            [0, 0, 0]
         ]
     }
 ]);
 
-const NEGETIVITY = createSection("Negetivity", [
+// FIX #9: Fixed typo "Negetivity" -> "Negativity"
+const NEGATIVITY = createSection("Negativity", [
     {
         id: 'neg-1',
         target: -4,
-        name: "Negetive Steps",
-        description: "Merge negetive tiles to reach the target.",
+        name: "Negative Steps",
+        description: "Merge negative tiles to reach the target.",
         grid: [
             [-2, 0],
             [0, -2]
@@ -203,45 +198,8 @@ const NEGETIVITY = createSection("Negetivity", [
     {
         id: 'neg-2',
         target: 32,
-        name: "Collison",
-        description: "Merge positive and negetive tiles to cancel them out!",
-        grid: [
-            ['W', 0, -2, 'W', 'W'],
-            [16, L(2), 0, L(8), L(16)],
-            ['W', 'W', -8, 0, 'W']
-        ],
-        thinWalls: {
-            vertical: [],
-            horizontal: [[0, 2], [1, 2]]
-        }
-    },
-]);
-const MISCELLANEOUS = createSection("Miscellaneous", [
-    {
-        id: 'misc-1',
-        target: 4,
-        name: "Frozen Lake",
-        description: "Merge and win ;)",
-        grid: [
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 2, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, L(2), 0, 0, 0]
-        ],
-        thinWalls: {
-            vertical: [[2, 1], [3, 1], [5, 4], [7, 3], [7, 4]],
-            horizontal: [[2, 2], [5, 2]]
-        }
-    },
-    {
-        id: 'neg-2',
-        target: 32,
-        name: "Collison",
-        description: "Merge positive and negetive tiles to cancel them out!",
+        name: "Collision",
+        description: "Merge positive and negative tiles to cancel them out!",
         grid: [
             ['W', 0, -2, 'W', 'W'],
             [16, L(2), 0, L(8), L(16)],
@@ -265,12 +223,37 @@ const MISCELLANEOUS = createSection("Miscellaneous", [
         ]
     }
 ]);
+
+const MISCELLANEOUS = createSection("Miscellaneous", [
+    {
+        id: 'misc-1',
+        target: 4,
+        name: "Frozen Lake",
+        description: "Merge and win ;)",
+        grid: [
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 2, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, L(2), 0, 0, 0]
+        ],
+        thinWalls: {
+            vertical: [[2, 1], [3, 1], [5, 4], [7, 3], [7, 4]],
+            horizontal: [[2, 2], [5, 2]]
+        }
+    }
+    // FIX #5: Removed duplicate "Collision" level (was misc-2)
+]);
+
 export const INITIAL_LEVELS: Level[] = [
     ...BASICS,
     ...WALLS,
     ...LOCKS,
     ...STICKY,
     ...GENERATORS,
-    ...NEGETIVITY,
+    ...NEGATIVITY,
     ...MISCELLANEOUS
 ];

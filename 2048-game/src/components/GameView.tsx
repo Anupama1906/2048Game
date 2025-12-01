@@ -1,10 +1,9 @@
 // src/components/GameView.tsx
-import React, { useEffect, useRef } from 'react';
-import { RotateCcw, ChevronRight, Trophy, Lock, RefreshCw, Star, Factory, Magnet } from 'lucide-react';
+import React, { useEffect, useRef, useMemo, useCallback } from 'react';
+import { RotateCcw, ChevronRight, Trophy, RefreshCw } from 'lucide-react';
 import type { Level, Cell } from '../types/types';
-import { TILE_COLORS } from '../constants/theme';
-import { WALL } from '../constants/game';
 import { useGame } from '../hooks/usegame';
+import Tile from './Tile'; // NEW: Extracted component
 
 interface GameViewProps {
     level: Level;
@@ -18,7 +17,9 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
     // 1. Use the Hook
     const { grid, gameState, move, undo, reset, canUndo, moves } = useGame(level);
 
-    // 2. UI State (Hint system removed)
+    // FIX #3: Debounce rapid moves
+    const lastMoveTime = useRef(0);
+    const MOVE_DELAY = 100; // ms
 
     const touchStart = useRef<{ x: number; y: number } | null>(null);
     const touchEnd = useRef<{ x: number; y: number } | null>(null);
@@ -32,29 +33,41 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
 
     // Responsive Gap Logic
     let gapClass = 'gap-3';
-    let gapRem = 0.75; // 12px
+    let gapRem = 0.75;
 
     if (boardSize > 6) {
         gapClass = 'gap-1';
-        gapRem = 0.25; // 4px
+        gapRem = 0.25;
     } else if (boardSize > 4) {
         gapClass = 'gap-2';
-        gapRem = 0.5; // 8px
+        gapRem = 0.5;
     }
+
+    // FIX #3: Throttled move function
+    const throttledMove = useCallback((direction: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT') => {
+        const now = Date.now();
+        if (now - lastMoveTime.current < MOVE_DELAY) return;
+        lastMoveTime.current = now;
+        move(direction);
+    }, [move]);
 
     // Controls
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            // Prevent default to avoid page scrolling
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+            }
             switch (e.key) {
-                case 'ArrowUp': move('UP'); break;
-                case 'ArrowDown': move('DOWN'); break;
-                case 'ArrowLeft': move('LEFT'); break;
-                case 'ArrowRight': move('RIGHT'); break;
+                case 'ArrowUp': throttledMove('UP'); break;
+                case 'ArrowDown': throttledMove('DOWN'); break;
+                case 'ArrowLeft': throttledMove('LEFT'); break;
+                case 'ArrowRight': throttledMove('RIGHT'); break;
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [move]);
+    }, [throttledMove]);
 
     // Auto-save score on win
     useEffect(() => {
@@ -68,88 +81,39 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
 
     const onTouchStart = (e: React.TouchEvent) => {
         touchEnd.current = null;
-        touchStart.current = { x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY }
-    }
-    const onTouchMove = (e: React.TouchEvent) => { touchEnd.current = { x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY } }
+        touchStart.current = { x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY };
+    };
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        touchEnd.current = { x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY };
+    };
+
+    // FIX #8: Improved swipe detection
     const onTouchEnd = () => {
         if (!touchStart.current || !touchEnd.current) return;
+
         const dx = touchStart.current.x - touchEnd.current.x;
         const dy = touchStart.current.y - touchEnd.current.y;
-        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) { dx > 0 ? move('LEFT') : move('RIGHT'); }
-        else if (Math.abs(dy) > 30) { dy > 0 ? move('UP') : move('DOWN'); }
-    }
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-    const getFontSize = (val: number) => {
-        const len = val.toString().length;
-        if (boardSize <= 3) return len > 3 ? 'text-4xl' : 'text-5xl';
-        if (boardSize === 4) return len > 3 ? 'text-3xl' : 'text-4xl';
-        if (boardSize === 5) return len > 3 ? 'text-xl' : 'text-2xl';
-        return len > 3 ? 'text-xs' : 'text-sm';
-    };
+        const MIN_SWIPE_DISTANCE = 30;
+        if (distance < MIN_SWIPE_DISTANCE) return;
 
-    const Tile = ({ value }: { value: Cell }) => {
-        if (value === 0) return <div className="w-full h-full rounded-lg bg-gray-200/50 dark:bg-gray-700/50" />;
-
-        if (value === WALL) return (
-            <div className="w-full h-full rounded-lg bg-slate-700 shadow-inner flex items-center justify-center border-4 border-slate-800 dark:border-slate-900">
-                <Lock className="text-slate-500 w-6 h-6" />
-            </div>
-        );
-
-        let displayValue: number;
-        let isLocked = false;
-        let isGenerator = false;
-        let isSticky = false;
-
-        if (typeof value === 'object') {
-            displayValue = value.value;
-            if (value.type === 'locked') isLocked = true;
-            if (value.type === 'generator') isGenerator = true;
-            if (value.type === 'sticky') isSticky = true;
+        if (Math.abs(dx) > Math.abs(dy)) {
+            dx > 0 ? throttledMove('LEFT') : throttledMove('RIGHT');
         } else {
-            displayValue = value;
+            dy > 0 ? throttledMove('UP') : throttledMove('DOWN');
         }
-
-        const fontSizeClass = getFontSize(displayValue);
-
-        let extraStyle = "";
-        if (isLocked) {
-            extraStyle = "border-4 border-slate-400 dark:border-slate-500 ring-2 ring-slate-200 dark:ring-slate-700 z-10";
-        } else if (isGenerator) {
-            extraStyle = "border-4 border-dashed border-slate-600 dark:border-slate-400 z-10";
-        } else if (isSticky) {
-            extraStyle = "border-4 border-red-400 dark:border-red-500 z-10";
-        }
-
-        if (isSticky && displayValue === 0) {
-            return (
-                <div className="w-full h-full rounded-lg bg-red-100/50 dark:bg-red-900/30 border-4 border-red-300 dark:border-red-700 border-dashed flex items-center justify-center">
-                    <Magnet className="text-red-400 dark:text-red-500 opacity-50" size={24} />
-                </div>
-            );
-        }
-
-        return (
-            <div className={`w-full h-full rounded-lg ${TILE_COLORS[displayValue] || 'bg-gray-900 text-white'} ${extraStyle} shadow-sm flex items-center justify-center font-bold ${fontSizeClass} select-none animate-in zoom-in duration-200 relative overflow-hidden`}>
-                {displayValue}
-                {isLocked && (
-                    <div className="absolute top-1 right-1 opacity-60">
-                        <Lock size={14} className="text-slate-900 dark:text-white" strokeWidth={2.5} />
-                    </div>
-                )}
-                {isGenerator && (
-                    <div className="absolute top-1 right-1 opacity-60">
-                        <Factory size={14} className="text-slate-900 dark:text-white" strokeWidth={2.5} />
-                    </div>
-                )}
-                {isSticky && (
-                    <div className="absolute top-1 right-1 opacity-60">
-                        <Magnet size={14} className="text-slate-900 dark:text-white" strokeWidth={2.5} />
-                    </div>
-                )}
-            </div>
-        );
     };
+
+    // FIX #1: Memoize grid rendering
+    const memoizedGrid = useMemo(() => {
+        return grid.map((row, r) => row.map((cell, c) => (
+            <div key={`${r}-${c}`} className="relative w-full h-full">
+                <Tile value={cell} boardSize={boardSize} />
+            </div>
+        )));
+    }, [grid, boardSize]);
 
     return (
         <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto h-full min-h-[500px] px-5 sm:px-4 lg:px-0">
@@ -165,10 +129,7 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
                         <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{moves}</div>
                     </div>
                     <div className="text-right">
-                        <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1 justify-end">
-                            Best
-                            {level.par && bestScore && bestScore <= level.par && <Star size={10} className="fill-yellow-400 text-yellow-400" />}
-                        </div>
+                        <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Best</div>
                         <div className="text-xl font-bold text-slate-700 dark:text-slate-200">
                             {bestScore !== undefined ? bestScore : '-'}
                         </div>
@@ -195,11 +156,7 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
                         gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
                         aspectRatio: `${cols}/${rows}`
                     }}>
-                    {grid.map((row, r) => row.map((cell, c) => (
-                        <div key={`${r}-${c}`} className="relative w-full h-full">
-                            <Tile value={cell} />
-                        </div>
-                    )))}
+                    {memoizedGrid}
 
                     {/* Walls Rendering */}
                     {level.thinWalls?.vertical?.map(([r, c], i) => (
@@ -246,6 +203,11 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
                         )}
                     </div>
                 )}
+            </div>
+
+            {/* FIX #11: Add keyboard help */}
+            <div className="text-xs text-slate-400 dark:text-slate-500 mb-2 text-center">
+                Use arrow keys or swipe to move tiles
             </div>
 
             {/* Footer */}

@@ -1,14 +1,38 @@
+// src/game/grid.ts
+// FIX #2: Optimized grid equality check
 import type { Grid } from '../types/types';
 
-// Updated to accept distinct rows/cols, though usually inferred from context
 export const createEmptyGrid = (rows: number, cols: number): Grid =>
     Array(rows).fill(null).map(() => Array(cols).fill(0));
 
 export const cloneGrid = (grid: Grid): Grid =>
     grid.map(row => [...row]);
 
-export const areGridsEqual = (g1: Grid, g2: Grid): boolean =>
-    JSON.stringify(g1) === JSON.stringify(g2);
+// FIX #2: Avoid JSON.stringify for better performance
+export const areGridsEqual = (g1: Grid, g2: Grid): boolean => {
+    if (g1.length !== g2.length) return false;
+
+    for (let r = 0; r < g1.length; r++) {
+        if (g1[r].length !== g2[r].length) return false;
+
+        for (let c = 0; c < g1[r].length; c++) {
+            // For complex cells (objects), we still need deep comparison
+            const cell1 = g1[r][c];
+            const cell2 = g2[r][c];
+
+            // Quick primitive check
+            if (cell1 === cell2) continue;
+
+            // Deep check for objects
+            if (typeof cell1 === 'object' && typeof cell2 === 'object') {
+                if (JSON.stringify(cell1) !== JSON.stringify(cell2)) return false;
+            } else {
+                return false;
+            }
+        }
+    }
+    return true;
+};
 
 // Rotate grid 90 degrees clockwise
 // Supports Rectangular: MxN becomes NxM

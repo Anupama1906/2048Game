@@ -60,7 +60,11 @@ interface ProcessResult {
 }
 
 /**
- * Slide and Merge Logic that supports Sticky Cells.
+ * FIXED: Slide and Merge Logic that supports Sticky Cells correctly.
+ * * Sticky cell behavior:
+ * - When a tile enters an empty sticky cell, it fills it
+ * - A filled sticky cell with non-zero value acts as a "stop" - tiles cannot pass through
+ * - Empty sticky cells can be filled, but don't stop momentum
  */
 const slideAndMergeWithSticky = (chunk: Cell[]): ProcessResult => {
     const result = [...chunk];
@@ -138,7 +142,11 @@ const processChunkWithLocked = (chunk: Cell[]): ProcessResult => {
     const incomingTile = incomingTileIdx !== -1 ? rightRes.grid[incomingTileIdx] : 0;
     const isIncomingMerged = incomingTileIdx !== -1 ? rightRes.merged[incomingTileIdx] : false;
 
+    // FIX: Added 'incomingTileIdx === 0' check.
+    // If the tile is stuck at index 1 or greater (due to a sticky cell stopping it),
+    // it should NOT merge with the lock at the conceptual index -1.
     if (incomingTile !== 0 &&
+        incomingTileIdx === 0 &&
         !isLocked(incomingTile) &&
         !isIncomingMerged &&
         canMerge(incomingTile, lockedCell)) {
@@ -152,9 +160,7 @@ const processChunkWithLocked = (chunk: Cell[]): ProcessResult => {
         const rightGridMod = [...rightRes.grid];
         rightGridMod[incomingTileIdx] = makeEmpty(incomingTile);
 
-        // FIX: Recursively process the remainder using processChunkWithLocked.
-        // This ensures that if there are MORE locked tiles in 'rightGridMod', they stay pinned.
-        // (Previously this used slideAndMergeWithSticky, which ignored locks)
+        // Recursively process the remainder using processChunkWithLocked.
         const compactedRight = processChunkWithLocked(rightGridMod);
 
         // Result: The locked tile unlocks (becomes a number) after merge
