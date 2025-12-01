@@ -1,9 +1,8 @@
-// src/components/GameView.tsx
 import React, { useEffect, useRef, useMemo, useCallback } from 'react';
 import { RotateCcw, ChevronRight, Trophy, RefreshCw } from 'lucide-react';
 import type { Level, Cell } from '../types/types';
 import { useGame } from '../hooks/usegame';
-import Tile from './Tile'; // NEW: Extracted component
+import Tile from './Tile';
 
 interface GameViewProps {
     level: Level;
@@ -17,9 +16,8 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
     // 1. Use the Hook
     const { grid, gameState, move, undo, reset, canUndo, moves } = useGame(level);
 
-    // FIX #3: Debounce rapid moves
     const lastMoveTime = useRef(0);
-    const MOVE_DELAY = 100; // ms
+    const MOVE_DELAY = 10; // ms
 
     const touchStart = useRef<{ x: number; y: number } | null>(null);
     const touchEnd = useRef<{ x: number; y: number } | null>(null);
@@ -43,7 +41,6 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
         gapRem = 0.5;
     }
 
-    // FIX #3: Throttled move function
     const throttledMove = useCallback((direction: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT') => {
         const now = Date.now();
         if (now - lastMoveTime.current < MOVE_DELAY) return;
@@ -88,7 +85,6 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
         touchEnd.current = { x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY };
     };
 
-    // FIX #8: Improved swipe detection
     const onTouchEnd = () => {
         if (!touchStart.current || !touchEnd.current) return;
 
@@ -106,7 +102,7 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
         }
     };
 
-    // FIX #1: Memoize grid rendering
+
     const memoizedGrid = useMemo(() => {
         return grid.map((row, r) => row.map((cell, c) => (
             <div key={`${r}-${c}`} className="relative w-full h-full">
@@ -205,7 +201,6 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWo
                 )}
             </div>
 
-            {/* FIX #11: Add keyboard help */}
             <div className="text-xs text-slate-400 dark:text-slate-500 mb-2 text-center">
                 Use arrow keys or swipe to move tiles
             </div>

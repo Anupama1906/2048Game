@@ -1,5 +1,3 @@
-// src/components/ErrorBoundary.tsx
-// FIX #6: Add Error Boundary for better error handling
 import React, { Component, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 

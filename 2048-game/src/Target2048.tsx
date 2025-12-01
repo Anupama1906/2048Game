@@ -1,12 +1,9 @@
-// src/Target2048.tsx
-// FIX #10 & #12: Optimized localStorage and lazy loading
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import type { AppScreen, Level } from './types/types';
 import MainMenuView from './components/MainMenuView';
 import { INITIAL_LEVELS } from './data/levels';
 import { getDailyLevel } from './utils/daily';
 
-// FIX #12: Lazy load non-critical screens
 const LevelSelectView = lazy(() => import('./components/LevelSelectView'));
 const CreatorView = lazy(() => import('./components/CreatorView'));
 const GameView = lazy(() => import('./components/GameView'));
@@ -33,7 +30,6 @@ export default function Target2048App() {
 
     const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
-    // FIX #10: Optimize localStorage with useCallback
     useEffect(() => {
         localStorage.setItem('target2048_scores', JSON.stringify(bestScores));
     }, [bestScores]);
@@ -54,7 +50,6 @@ export default function Target2048App() {
         setScreen('game');
     }, []);
 
-    // FIX #10: Use useCallback for score updates
     const handleLevelWon = useCallback((moves: number) => {
         if (currentLevel) {
             setBestScores(prev => {
@@ -103,7 +98,6 @@ export default function Target2048App() {
                         />
                     )}
 
-                    {/* FIX #12: Wrap lazy-loaded components in Suspense */}
                     <Suspense fallback={<LoadingScreen />}>
                         {screen === 'level-select' && (
                             <LevelSelectView

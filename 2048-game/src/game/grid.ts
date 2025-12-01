@@ -1,5 +1,3 @@
-// src/game/grid.ts
-// FIX #2: Optimized grid equality check
 import type { Grid } from '../types/types';
 
 export const createEmptyGrid = (rows: number, cols: number): Grid =>
@@ -8,7 +6,7 @@ export const createEmptyGrid = (rows: number, cols: number): Grid =>
 export const cloneGrid = (grid: Grid): Grid =>
     grid.map(row => [...row]);
 
-// FIX #2: Avoid JSON.stringify for better performance
+
 export const areGridsEqual = (g1: Grid, g2: Grid): boolean => {
     if (g1.length !== g2.length) return false;
 

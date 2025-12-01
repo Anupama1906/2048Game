@@ -1,5 +1,3 @@
-// src/components/Tile.tsx
-// FIX #4: Extracted Tile Component with memo
 import React, { memo } from 'react';
 import { Lock, Factory, Magnet } from 'lucide-react';
 import type { Cell } from '../types/types';
@@ -87,5 +85,5 @@ const Tile: React.FC<TileProps> = ({ value, boardSize }) => {
     );
 };
 
-// FIX #4: Memoize to prevent unnecessary re-renders
+
 export default memo(Tile);

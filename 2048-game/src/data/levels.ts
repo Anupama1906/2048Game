@@ -174,7 +174,7 @@ const GENERATORS = createSection("Generators", [
         target: 32,
         name: "Factory",
         description: "Generators create numbers.",
-        par: 23,
+        par: 19,
         grid: [
             [G(2), 0, 0],
             [0, 0, 0],
@@ -183,7 +183,7 @@ const GENERATORS = createSection("Generators", [
     }
 ]);
 
-// FIX #9: Fixed typo "Negetivity" -> "Negativity"
+
 const NEGATIVITY = createSection("Negativity", [
     {
         id: 'neg-1',
@@ -245,7 +245,6 @@ const MISCELLANEOUS = createSection("Miscellaneous", [
             horizontal: [[2, 2], [5, 2]]
         }
     }
-    // FIX #5: Removed duplicate "Collision" level (was misc-2)
 ]);
 
 export const INITIAL_LEVELS: Level[] = [
