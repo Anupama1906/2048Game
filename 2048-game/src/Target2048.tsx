@@ -6,14 +6,13 @@ import LevelSelectView from './components/LevelSelectView';
 import CreatorView from './components/CreatorView';
 import GameView from './components/GameView';
 import { INITIAL_LEVELS } from './data/levels';
-import { getDailyLevel } from './utils/daily'; // Import the helper
+import { getDailyLevel } from './utils/daily';
 
 export default function Target2048App() {
     const [screen, setScreen] = useState<AppScreen>('menu');
     const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
     const [isDarkMode, setIsDarkMode] = useState(false);
 
-    // ... (Keep existing bestScores state and effects) ...
     const [bestScores, setBestScores] = useState<Record<string | number, number>>(() => {
         const saved = localStorage.getItem('target2048_scores');
         if (saved) {
@@ -21,20 +20,18 @@ export default function Target2048App() {
         }
         return {};
     });
-    
+
     const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
     useEffect(() => {
         localStorage.setItem('target2048_scores', JSON.stringify(bestScores));
     }, [bestScores]);
 
-
     const handleSelectLevel = (level: Level) => {
         setCurrentLevel(level);
         setScreen('game');
     };
 
-    // NEW: Handle Daily Play
     const handlePlayDaily = () => {
         const dailyLevel = getDailyLevel();
         setCurrentLevel(dailyLevel);
@@ -46,7 +43,8 @@ export default function Target2048App() {
         setScreen('game');
     };
 
-    const handleLevelComplete = (moves: number) => {
+    // NEW: Save score purely. Does not navigate.
+    const handleLevelWon = (moves: number) => {
         if (currentLevel) {
             setBestScores(prev => {
                 const currentBest = prev[currentLevel.id];
@@ -55,11 +53,14 @@ export default function Target2048App() {
                 }
                 return prev;
             });
+        }
+    };
 
-            // If it was a Daily level, go back to menu instead of "Next Level"
-            // (Since there is no "next" daily level for today)
+    // RENAMED: Handles navigation logic for "Next Level"
+    const handleNextLevel = () => {
+        if (currentLevel) {
             if (currentLevel.section === "Daily") {
-                setScreen('menu'); // Or show a special "Daily Complete" screen in the future
+                setScreen('menu');
             } else {
                 const currentIndex = INITIAL_LEVELS.findIndex(l => l.id === currentLevel.id);
                 if (currentIndex !== -1 && currentIndex < INITIAL_LEVELS.length - 1) {
@@ -85,14 +86,13 @@ export default function Target2048App() {
                     {screen === 'menu' && (
                         <MainMenuView
                             onPlay={() => setScreen('level-select')}
-                            onDaily={handlePlayDaily} // Pass the handler
+                            onDaily={handlePlayDaily}
                             onCreate={() => setScreen('creator')}
                             isDarkMode={isDarkMode}
                             toggleDarkMode={toggleDarkMode}
                         />
                     )}
 
-                    {/* ... (Rest of the render logic remains the same) ... */}
                     {screen === 'level-select' && (
                         <LevelSelectView
                             onSelectLevel={handleSelectLevel}
@@ -112,8 +112,9 @@ export default function Target2048App() {
                         <GameView
                             level={currentLevel}
                             bestScore={bestScores[currentLevel.id]}
-                            onBack={() => setScreen(currentLevel.section === "Daily" ? 'menu' : 'level-select')} // Smarter back button
-                            onComplete={handleLevelComplete}
+                            onBack={() => setScreen(currentLevel.section === "Daily" ? 'menu' : 'level-select')}
+                            onLevelWon={handleLevelWon} // Pass the save handler
+                            onComplete={handleNextLevel} // Pass the nav handler
                         />
                     )}
                 </div>

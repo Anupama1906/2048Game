@@ -1,10 +1,10 @@
 // src/data/levels.ts
-import type { Level, StationaryCell, GeneratorCell, StickyCell } from "../types/types";
+import type { Level, LockedCell, GeneratorCell, StickyCell } from "../types/types";
 
 // --- HELPERS ---
-const S = (val: number): StationaryCell => ({ type: 'stationary', value: val });
+const L = (val: number): LockedCell => ({ type: 'locked', value: val });
 const G = (val: number): GeneratorCell => ({ type: 'generator', value: val });
-const P = (val: number): StickyCell => ({ type: 'sticky', value: val });
+const S = (val: number): StickyCell => ({ type: 'sticky', value: val });
 
 const createSection = (sectionName: string, levels: Omit<Level, 'section'>[]): Level[] => {
     return levels.map(level => ({
@@ -30,51 +30,64 @@ const BASICS = createSection("Basics", [
     {
         id: 'basics-2',
         target: 16,
-        name: "Merge Away",
+        name: "Merge",
         description: "Merge similar numbers to reach the desired target.",
         par: 6,
         grid: [
-            [2, 0, 0, 2],
-            [0, 2, 2, 0],
-            [0, 2, 2, 0],
-            [2, 0, 0, 2]
+            [2, 0, 2],
+            [0, 0, 0],
+            [4, 0, 8]
         ]
     },
     {
         id: 'basics-3',
-        target: 2048,
-        name: "Chain",
-        description: "Merge numbers to reach larger numbers.",
-        par: 4,
+        target: 64,
+        name: "Getting Bigger",
+        description: "Try to reach the target with fewer moves ;)",
+        par: 10,
         grid: [
-            [2, 2, 4, 8],
-            ["W", "W", "W", 16],
-            [1024, "W", "W", 32],
-            [512, 256, 128, 64]
+            [4, 2, 2, 4],
+            [2, 8, 8, 2],
+            [2, 8, 8, 2],
+            [4, 2, 2, 4]
         ]
     },
     {
         id: 'basics-4',
-        target: 32,
+        target: 512,
         name: "Combinations",
         description: "Try to reach the goal with few moves.",
-        par: 10,
+        par: 8,
         grid: [
-            [2, 4, 4, 2],
-            [2, 4, 4, 2],
-            [4, 2, 2, 4],
-            [4, 2, 2, 4]
+            [2, 2, 4, 8],
+            [2, 2, 4, 8],
+            [128, 64, 32, 16],
+            [128, 64, 32, 16]
         ]
     },
 ]);
 
-const STRATEGIES = createSection("Strategies", [
+const WALLS = createSection("Walls", [
     {
-        id: 'strat-1',
+        id: 'wall-1',
+        target: 4,
+        name: "Turn Around",
+        description: "Walls block movement.",
+        par: 4,
+        grid: [
+            [0, 0, 0, 0, 0],
+            [0, 'W', 'W', 'W', 0],
+            [0, 'W', 2, 'W', 0],
+            [2, 'W', 0, 'W', 0],
+            ['W', 'W', 0, 0, 0]
+        ]
+    },
+    {
+        id: 'wall-2',
         target: 16,
         name: "The Corridor",
-        description: "Plan Carefully. Use undo if you got stuck.",
-        par: 8,
+        description: "Use the open paths to merge tiles.",
+        par: 4,
         grid: [
             ['W', 0, 0, 'W'],
             [4, 2, 2, 4],
@@ -83,10 +96,10 @@ const STRATEGIES = createSection("Strategies", [
         ]
     },
     {
-        id: 'strat-2',
+        id: 'wall-3',
         target: 16,
         name: "Cornered",
-        description: "Order matters.",
+        description: "Plan Carefully. Use undo if you got stuck.",
         par: 5,
         grid: [
             [2, 2, 0, 2],
@@ -106,7 +119,7 @@ const CHALLENGES = createSection("Challenges", [
         grid: [
             [16, 0, 'W', 16],
             [8, 0, 'W', 8],
-            [4, S(4), 0, 4],
+            [4, L(4), 0, 4],
             [0, 0, 0, 4]
         ]
     },
@@ -150,10 +163,10 @@ const MECHANICS = createSection("Mechanics", [
         name: "Sticky Situation",
         description: "Pinned tiles (with dots) won't move until you merge them.",
         grid: [
-            [S(2), 0, 0, S(2)],
+            [L(2), 0, 0, L(2)],
             [0, 4, 4, 0],
             [0, 0, 0, 0],
-            [S(8), 0, 0, S(8)]
+            [L(8), 0, 0, L(8)]
         ]
     },
     {
@@ -162,7 +175,7 @@ const MECHANICS = createSection("Mechanics", [
         name: "Power Plant",
         description: "Generators (Factory icon) spawn new numbers when you clear the space.",
         grid: [
-            [0, P(0), P(0), 0],
+            [0, S(0), S(0), 0],
             [2, 'W', 'W', 2]
         ]
     }
@@ -186,7 +199,7 @@ const NEGETIVITY = createSection("Negetivity", [
         description: "Merge positive and negetive tiles to cancel them out!",
         grid: [
             ['W', 0, -2, 'W', 'W'],
-            [16, S(2), 0, S(8), S(16)],
+            [16, L(2), 0, L(8), L(16)],
             ['W', 'W', -8, 0, 'W']
         ],
         thinWalls: {
@@ -207,12 +220,61 @@ const NEGETIVITY = createSection("Negetivity", [
         ]
     }
 ]);
-
+const MISCELLANEOUS = createSection("Miscellaneous", [
+    {
+        id: 'misc-1',
+        target: 4,
+        name: "Frozen Lake",
+        description: "Merge and win ;)",
+        grid: [
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 2, 0, 0, 'W', 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 'W', 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, L(2), 0, 0, 0]
+        ],
+        thinWalls: {
+            vertical: [[2, 1], [3, 1], [5, 4], [7, 3], [7, 4]],
+            horizontal: [[2, 2], [5, 2]]
+        }
+    },
+    {
+        id: 'neg-2',
+        target: 32,
+        name: "Collison",
+        description: "Merge positive and negetive tiles to cancel them out!",
+        grid: [
+            ['W', 0, -2, 'W', 'W'],
+            [16, L(2), 0, L(8), L(16)],
+            ['W', 'W', -8, 0, 'W']
+        ],
+        thinWalls: {
+            vertical: [],
+            horizontal: [[0, 2], [1, 2]]
+        }
+    },
+    {
+        id: 'neg-3',
+        target: 8,
+        name: "Antimatter",
+        description: "Blue tiles are negative. Merge +2 and -2 to cancel them out!",
+        grid: [
+            [2, -2, 0, 0],
+            [-4, 4, 0, 0],
+            [2, 2, -4, 0],
+            [0, 0, 0, 0]
+        ]
+    }
+]);
 export const INITIAL_LEVELS: Level[] = [
     ...BASICS,
-    ...STRATEGIES,
+    ...WALLS,
     ...CHALLENGES,
     ...EXPERT,
     ...MECHANICS,
-    ...NEGETIVITY
+    ...NEGETIVITY,
+    ...MISCELLANEOUS
 ];

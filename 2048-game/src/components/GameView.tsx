@@ -11,10 +11,11 @@ interface GameViewProps {
     level: Level;
     bestScore?: number;
     onBack: () => void;
-    onComplete: (moves: number) => void;
+    onLevelWon: (moves: number) => void;
+    onComplete: () => void;
 }
 
-const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplete }) => {
+const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onLevelWon, onComplete }) => {
     // 1. Use the Hook
     const { grid, gameState, move, undo, reset, canUndo, moves } = useGame(level);
 
@@ -25,14 +26,26 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
 
     const touchStart = useRef<{ x: number; y: number } | null>(null);
     const touchEnd = useRef<{ x: number; y: number } | null>(null);
+    const hasSavedScore = useRef(false);
 
-    // FIX 1: Ensure rows/cols are never 0 (fallback to level data if hook hasn't loaded yet)
+    // Grid Dimensions
     const currentGrid = grid.length > 0 ? grid : level.grid;
     const rows = currentGrid.length;
     const cols = currentGrid[0]?.length || 0;
-
-    // FIX 2: Define boardSize for font scaling logic
     const boardSize = Math.max(rows, cols);
+
+    // Responsive Gap Logic
+    // Denser grids get smaller gaps to prevent squishing on mobile
+    let gapClass = 'gap-3';
+    let gapRem = 0.75; // 12px
+
+    if (boardSize > 6) {
+        gapClass = 'gap-1';
+        gapRem = 0.25; // 4px
+    } else if (boardSize > 4) {
+        gapClass = 'gap-2';
+        gapRem = 0.5; // 8px
+    }
 
     // Controls
     useEffect(() => {
@@ -48,6 +61,16 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [move, showHintModal]);
+
+    // Auto-save score on win
+    useEffect(() => {
+        if (gameState === 'playing') {
+            hasSavedScore.current = false;
+        } else if (gameState === 'won' && !hasSavedScore.current) {
+            onLevelWon(moves);
+            hasSavedScore.current = true;
+        }
+    }, [gameState, moves, onLevelWon]);
 
     const onTouchStart = (e: React.TouchEvent) => {
         touchEnd.current = null;
@@ -76,11 +99,6 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
         }
     };
 
-    // Render Helpers
-    const cellWidthPct = 100 / cols;
-    const cellHeightPct = 100 / rows;
-    const gapRem = 0.75;
-
     const getFontSize = (val: number) => {
         const len = val.toString().length;
         if (boardSize <= 3) return len > 3 ? 'text-4xl' : 'text-5xl';
@@ -99,13 +117,13 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
         );
 
         let displayValue: number;
-        let isStationary = false;
+        let isLocked = false;
         let isGenerator = false;
         let isSticky = false;
 
         if (typeof value === 'object') {
             displayValue = value.value;
-            if (value.type === 'stationary') isStationary = true;
+            if (value.type === 'locked') isLocked = true;
             if (value.type === 'generator') isGenerator = true;
             if (value.type === 'sticky') isSticky = true;
         } else {
@@ -115,16 +133,14 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
         const fontSizeClass = getFontSize(displayValue);
 
         let extraStyle = "";
-        if (isStationary) {
+        if (isLocked) {
             extraStyle = "border-4 border-slate-400 dark:border-slate-500 ring-2 ring-slate-200 dark:ring-slate-700 z-10";
         } else if (isGenerator) {
             extraStyle = "border-4 border-dashed border-slate-600 dark:border-slate-400 z-10";
         } else if (isSticky) {
-            // New Style for Sticky: Red/Pinkish border to look "magnetic" or "trapping"
             extraStyle = "border-4 border-red-400 dark:border-red-500 z-10";
         }
 
-        // Render Logic for Empty Sticky Cell (P(0))
         if (isSticky && displayValue === 0) {
             return (
                 <div className="w-full h-full rounded-lg bg-red-100/50 dark:bg-red-900/30 border-4 border-red-300 dark:border-red-700 border-dashed flex items-center justify-center">
@@ -133,11 +149,10 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
             );
         }
 
-
         return (
             <div className={`w-full h-full rounded-lg ${TILE_COLORS[displayValue] || 'bg-gray-900 text-white'} ${extraStyle} shadow-sm flex items-center justify-center font-bold ${fontSizeClass} select-none animate-in zoom-in duration-200 relative overflow-hidden`}>
                 {displayValue}
-                {isStationary && (
+                {isLocked && (
                     <div className="absolute top-1 right-1 opacity-60">
                         <Lock size={14} className="text-slate-900 dark:text-white" strokeWidth={2.5} />
                     </div>
@@ -183,13 +198,10 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
                 </button>
 
                 <div className="flex gap-4 md:gap-8">
-                    {/* Moves */}
                     <div className="text-right">
                         <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Moves</div>
                         <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{moves}</div>
                     </div>
-
-                    {/* Best Score */}
                     <div className="text-right">
                         <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1 justify-end">
                             Best
@@ -199,8 +211,6 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
                             {bestScore !== undefined ? bestScore : '-'}
                         </div>
                     </div>
-
-                    {/* Target */}
                     <div className="text-right">
                         <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Target</div>
                         <div className="text-xl font-bold text-orange-600 dark:text-orange-400">{level.target}</div>
@@ -214,16 +224,14 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
             </div>
 
             {/* Board Container */}
-            {/* FIX 3: Added flex center and min-height to ensure overlay fits even if grid is small */}
             <div className="relative bg-slate-300 dark:bg-slate-700 p-3 rounded-xl shadow-xl w-full mb-6 touch-none flex flex-col items-center justify-center min-h-[320px]"
                 onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
 
-                {/* Grid Div: Removed h-full so it takes natural height from aspect ratio, while container stretches */}
-                <div className="grid gap-3 w-full relative z-0"
+                <div className={`grid ${gapClass} w-full relative z-0`}
                     style={{
                         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
                         gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
-                        aspectRatio: `${cols}/${rows}` // Keeps cells square
+                        aspectRatio: `${cols}/${rows}`
                     }}>
                     {grid.map((row, r) => row.map((cell, c) => (
                         <div key={`${r}-${c}`} className="relative w-full h-full">
@@ -231,23 +239,29 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
                         </div>
                     )))}
 
-                    {/* Walls Rendering */}
+                    {/* Walls Rendering - Corrected Logic */}
                     {level.thinWalls?.vertical?.map(([r, c], i) => (
                         <div key={`v-${i}`} className="absolute bg-slate-800 dark:bg-slate-200 rounded-full z-10 shadow-sm"
                             style={{
                                 width: '6px',
-                                height: `calc(${cellHeightPct}% - 1.25*${gapRem}rem)`,
-                                top: `calc(${r * cellHeightPct}% + ${gapRem / 2}rem)`,
-                                left: `calc(${(c + 1) * cellWidthPct}% - ${gapRem / 2}rem )`
+                                height: `calc(${100 / rows}% - ${1.25 * gapRem}rem)`, // Height of one cell (approx)
+                                // Top: Start of row r + half gap
+                                top: `calc(${r * 100 / rows}% + ${gapRem}rem * (${r / rows} + 0.5))`,
+                                // Left: After column c (c+1). Center of the gap.
+                                // Formula: (c+1)/cols * 100% + gap * ((c+1)/cols - 0.5) - 3px
+                                left: `calc( ${(c + 1) * 100 / cols}% + ${gapRem}rem * (${(c + 1) / cols} - 0.5) - 3px )`
                             }} />
                     ))}
                     {level.thinWalls?.horizontal?.map(([r, c], i) => (
                         <div key={`h-${i}`} className="absolute bg-slate-800 dark:bg-slate-200 rounded-full z-10 shadow-sm"
                             style={{
                                 height: '6px',
-                                width: `calc(${cellWidthPct}% - ${gapRem}rem)`,
-                                left: `calc(${c * cellWidthPct}% + ${gapRem / 2}rem)`,
-                                top: `calc(${(r + 1) * cellHeightPct}% - ${gapRem / 2}rem )`
+                                width: `calc(${100 / cols}% - ${gapRem}rem)`, // Width of one cell (approx)
+                                // Left: Start of col c + half gap
+                                left: `calc(${c * 100 / cols}% + ${gapRem}rem * (${c / cols} + 0.5))`,
+                                // Top: After row r (r+1). Center of the gap.
+                                // Formula: (r+1)/rows * 100% + gap * ((r+1)/rows - 0.5) - 3px
+                                top: `calc( ${(r + 1) * 100 / rows}% + ${gapRem}rem * (${(r + 1) / rows} - 0.5) - 3px )`
                             }} />
                     ))}
                 </div>
@@ -260,7 +274,7 @@ const GameView: React.FC<GameViewProps> = ({ level, bestScore, onBack, onComplet
                                 <Trophy size={64} className="text-yellow-500 mb-4" />
                                 <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">Solved!</h2>
                                 <p className="text-slate-500 dark:text-slate-400 mb-4 font-medium">in {moves} moves</p>
-                                <button onClick={() => onComplete(moves)} className="mt-2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105">
+                                <button onClick={onComplete} className="mt-2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105">
                                     Next Level
                                 </button>
                             </>

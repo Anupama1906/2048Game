@@ -1,6 +1,6 @@
 // src/types/types.ts
-export interface StationaryCell {
-    type: 'stationary';
+export interface LockedCell {
+    type: 'locked';
     value: number;
 }
 
@@ -15,7 +15,7 @@ export interface StickyCell {
     value: number;
 }
 
-export type Cell = number | 'WALL' | StationaryCell | GeneratorCell | StickyCell;
+export type Cell = number | 'WALL' | LockedCell | GeneratorCell | StickyCell;
 
 // ... (rest of the file remains the same)
 export type Grid = Cell[][];
@@ -30,7 +30,7 @@ export interface Level {
     description: string;
     section?: string;
     par?: number;
-    grid: (number | 'W' | 'WALL' | 0 | StationaryCell | GeneratorCell | StickyCell)[][];
+    grid: (number | 'W' | 'WALL' | 0 | LockedCell | GeneratorCell | StickyCell)[][];
     thinWalls?: {
         vertical: [number, number][];
         horizontal: [number, number][];

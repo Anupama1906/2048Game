@@ -1,8 +1,8 @@
 // src/data/dailyLevels.ts
-import type { Level, StationaryCell, GeneratorCell } from "../types/types";
+import type { Level, LockedCell, GeneratorCell } from "../types/types";
 
 // Helper functions (re-defined here to keep this file self-contained)
-const S = (val: number): StationaryCell => ({ type: 'stationary', value: val });
+const L = (val: number): LockedCell => ({ type: 'locked', value: val });
 const G = (val: number): GeneratorCell => ({ type: 'generator', value: val });
 
 export const DAILY_LEVELS: Level[] = [
