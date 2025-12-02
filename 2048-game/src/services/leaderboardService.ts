@@ -1,4 +1,3 @@
-// src/services/leaderboardService.ts
 import { db } from '../config/firebase';
 import {
   collection,
@@ -26,7 +25,7 @@ export const calculateScore = (moves: number, time: number): number => {
   return moves * 1000 + time;
 };
 
-// Submit a daily challenge score
+
 export const submitDailyScore = async (
   userId: string,
   username: string,

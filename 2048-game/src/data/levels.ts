@@ -158,14 +158,14 @@ const LOCKS = createSection("Locks", [
 const STICKY = createSection("Sticky", [
     {
         id: 'stick-1',
-        target: 32,
+        target: 16,
         name: "Sticky Situation",
         description: "Sticky tiles prevent further movement.",
         grid: [
-            [2, S(0), L(8), 0],
-            [L(16), 0, 0, S(0)],
-            [L(4), 0, S(0), S(0)],
-            [0, L(2), 0, 0]
+            [0, 2, S(0), 0],
+            [0, 'W', 0, 'W'],
+            [0, 'W', L(2), 'W'],
+            [L(4), 'W', L(8), 'W']
         ]
     }
 ]);
@@ -241,41 +241,23 @@ const NEGATIVITY = createSection("Negativity", [
             vertical: [],
             horizontal: [[0, 2], [1, 2]]
         }
-    },
-    {
-        id: 'neg-3',
-        target: 8,
-        name: "Antimatter",
-        description: "Blue tiles are negative. Merge +2 and -2 to cancel them out!",
-        grid: [
-            [2, -2, 0, 0],
-            [-4, 4, 0, 0],
-            [2, 2, -4, 0],
-            [0, 0, 0, 0]
-        ]
     }
 ]);
 
 const MISCELLANEOUS = createSection("Miscellaneous", [
     {
         id: 'misc-1',
-        target: 4,
-        name: "Frozen Lake",
-        description: "Merge and win ;)",
+        target: 32,
+        name: "Crossroads",
+        description: "Watch your step ;)",
+        par: 13,
         grid: [
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 2, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, L(2), 0, 0, 0]
-        ],
-        thinWalls: {
-            vertical: [[2, 1], [3, 1], [5, 4], [7, 3], [7, 4]],
-            horizontal: [[2, 2], [5, 2]]
-        }
+            [L(16), T(1), S(0), T(1), L(4)],
+            [T(1), T(1), S(0), T(1), T(1)],
+            [S(2), S(0), T(3), S(0), S(0)],
+            [T(1), T(1), S(0), T(1), T(1)],
+            [L(8), T(1), S(0), T(1), L(2)]
+        ]
     }
 ]);
 
