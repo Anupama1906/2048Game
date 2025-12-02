@@ -326,7 +326,7 @@ const NEGATIVITY = createSection("Negativity", [
     },
     {
         id: 'neg-2',
-        target: 32,
+        target: 64,
         name: "Collision",
         description: "Merge positive and negative tiles to cancel them out!",
         grid: [

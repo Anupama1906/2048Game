@@ -2,6 +2,12 @@
 import type { Level } from "../types/types";
 import { DAILY_LEVELS } from "../data/dailyLevels";
 
+// NEW: Export helper to get ID separately
+export const getDailyId = (): string => {
+    const today = new Date();
+    return `daily-${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+};
+
 export const getDailyLevel = (): Level => {
     // 1. Get today's date string (local time) to seed the selection
     const today = new Date();

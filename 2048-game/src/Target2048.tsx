@@ -6,7 +6,7 @@ import UsernameModal from './components/UsernameModal';
 import DailyGameView from './components/DailyGameView';
 import LoadingScreen from './components/LoadingScreen';
 import { INITIAL_LEVELS } from './data/levels';
-import { getDailyLevel } from './utils/daily';
+import { getDailyLevel, getDailyId } from './utils/daily'; // Imported getDailyId
 import { useAuth } from './contexts/AuthContext';
 
 const LevelSelectView = lazy(() => import('./components/LevelSelectView'));
@@ -20,12 +20,10 @@ export default function Target2048App() {
 
     // PERSISTED THEME STATE
     const [isDarkMode, setIsDarkMode] = useState(() => {
-        // Check local storage first
         const savedTheme = localStorage.getItem('target2048_theme');
         if (savedTheme !== null) {
             return JSON.parse(savedTheme);
         }
-        // Fallback to system preference
         if (typeof window !== 'undefined') {
             return window.matchMedia('(prefers-color-scheme: dark)').matches;
         }
@@ -42,9 +40,12 @@ export default function Target2048App() {
         return {};
     });
 
+    // Calculate if daily is played
+    const dailyId = getDailyId();
+    const hasPlayedDaily = bestScores[dailyId] !== undefined;
+
     const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
-    // Save Theme to LocalStorage
     useEffect(() => {
         localStorage.setItem('target2048_theme', JSON.stringify(isDarkMode));
     }, [isDarkMode]);
@@ -136,6 +137,7 @@ export default function Target2048App() {
                             onCreate={() => setScreen('creator')}
                             isDarkMode={isDarkMode}
                             toggleDarkMode={toggleDarkMode}
+                            hasPlayedDaily={hasPlayedDaily} 
                         />
                     )}
 
