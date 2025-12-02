@@ -4,6 +4,7 @@ import type { AppScreen, Level } from './types/types';
 import MainMenuView from './components/MainMenuView';
 import UsernameModal from './components/UsernameModal';
 import DailyGameView from './components/DailyGameView';
+import LoadingScreen from './components/LoadingScreen';
 import { INITIAL_LEVELS } from './data/levels';
 import { getDailyLevel } from './utils/daily';
 import { useAuth } from './contexts/AuthContext';
@@ -12,17 +13,24 @@ const LevelSelectView = lazy(() => import('./components/LevelSelectView'));
 const CreatorView = lazy(() => import('./components/CreatorView'));
 const GameView = lazy(() => import('./components/GameView'));
 
-const LoadingScreen = () => (
-    <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"></div>
-    </div>
-);
-
 export default function Target2048App() {
     const [screen, setScreen] = useState<AppScreen>('menu');
     const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
-    const [isDarkMode, setIsDarkMode] = useState(false);
     const [showUsernameModal, setShowUsernameModal] = useState(false);
+
+    // PERSISTED THEME STATE
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        // Check local storage first
+        const savedTheme = localStorage.getItem('target2048_theme');
+        if (savedTheme !== null) {
+            return JSON.parse(savedTheme);
+        }
+        // Fallback to system preference
+        if (typeof window !== 'undefined') {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        return false;
+    });
 
     const { user, username, loading: authLoading, signIn } = useAuth();
 
@@ -36,6 +44,11 @@ export default function Target2048App() {
 
     const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
+    // Save Theme to LocalStorage
+    useEffect(() => {
+        localStorage.setItem('target2048_theme', JSON.stringify(isDarkMode));
+    }, [isDarkMode]);
+
     useEffect(() => {
         localStorage.setItem('target2048_scores', JSON.stringify(bestScores));
     }, [bestScores]);
@@ -46,12 +59,10 @@ export default function Target2048App() {
     }, []);
 
     const handlePlayDaily = useCallback(async () => {
-        // Ensure user is signed in
         if (!user) {
             await signIn();
         }
 
-        // Check if username is set
         if (!username) {
             setShowUsernameModal(true);
             return;
@@ -109,9 +120,7 @@ export default function Target2048App() {
     if (authLoading) {
         return (
             <div className={isDarkMode ? 'dark' : ''}>
-                <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
-                    <LoadingScreen />
-                </div>
+                <LoadingScreen />
             </div>
         );
     }
