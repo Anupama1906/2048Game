@@ -48,7 +48,7 @@ const Tile: React.FC<TileProps> = ({ value, boardSize }) => {
 
     // 4. Special Case: Empty Temporary Cell (Floor with Counter)
     if (isTemporary && displayValue === 0) {
-         return (
+        return (
             <div className="w-full h-full rounded-lg bg-amber-100/50 dark:bg-amber-900/30 border-4 border-amber-300 dark:border-amber-700 border-dashed flex flex-col items-center justify-center gap-1">
                 <Hourglass className="text-amber-500 dark:text-amber-500 opacity-60" size={boardSize > 5 ? 16 : 24} />
                 <span className="text-amber-600 dark:text-amber-400 font-bold text-xs">{tempLimit}</span>
@@ -78,10 +78,20 @@ const Tile: React.FC<TileProps> = ({ value, boardSize }) => {
         extraStyle = "border-4 border-dashed border-amber-400 dark:border-amber-600 z-10";
     }
 
+    // Special Case: Empty Sticky Cell
     if (isSticky && displayValue === 0) {
         return (
             <div className="w-full h-full rounded-lg bg-red-100/50 dark:bg-red-900/30 border-4 border-red-300 dark:border-red-700 border-dashed flex items-center justify-center">
                 <Magnet className="text-red-400 dark:text-red-500 opacity-50" size={24} />
+            </div>
+        );
+    }
+
+    // Special Case: Empty Locked Cell (The "Trap")
+    if (isLocked && displayValue === 0) {
+        return (
+            <div className="w-full h-full rounded-lg bg-slate-100/50 dark:bg-slate-800/30 border-4 border-slate-300 dark:border-slate-600 border-dashed flex items-center justify-center">
+                <Lock className="text-slate-400 dark:text-slate-500 opacity-50" size={24} />
             </div>
         );
     }
@@ -104,7 +114,7 @@ const Tile: React.FC<TileProps> = ({ value, boardSize }) => {
                     <Magnet size={14} className="text-slate-900 dark:text-white" strokeWidth={2.5} />
                 </div>
             )}
-             {isTemporary && (
+            {isTemporary && (
                 <div className="absolute top-1 right-1 opacity-80 flex items-center gap-0.5 bg-black/10 rounded px-1">
                     <Hourglass size={10} className="text-slate-900 dark:text-white" strokeWidth={2.5} />
                     <span className="text-[9px] leading-none text-slate-900 dark:text-white">{tempLimit}</span>

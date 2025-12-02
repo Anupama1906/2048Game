@@ -40,15 +40,15 @@ const BASICS = createSection("Basics", [
     },
     {
         id: 'basics-3',
-        target: 512,
+        target: 256,
         name: "Combinations",
-        description: "Try to reach the goal with few moves.",
-        par: 8,
+        description: "Merge to reach higher numbers.",
+        par: 5,
         grid: [
-            [2, 2, 4, 8],
-            [2, 2, 4, 8],
-            [128, 64, 32, 16],
-            [128, 64, 32, 16]
+            [8, 8, 16, 32],
+            [8, 8, 16, 32],
+            [32, 16, 8, 8],
+            [32, 16, 8, 8]
         ]
     },
     {
@@ -72,13 +72,13 @@ const WALLS = createSection("Walls", [
         target: 4,
         name: "Turn Around",
         description: "Walls block movement.",
-        par: 4,
+        par: 9,
         grid: [
-            [0, 0, 0, 0, 0],
-            [0, 'W', 'W', 'W', 0],
-            [0, 'W', 2048, 'W', 0],
-            [0, 'W', 'W', 'W', 0],
-            [0, 2, 'W', 2, 0]
+            ['W', 0, 0, 0, 'W'],
+            [0, 0, 'W', 0, 0],
+            [0, 'W', 128, 'W', 0],
+            [0, 0, 'W', 0, 0],
+            ['W', 2, 'W', 2, 'W']
         ]
     },
     {
@@ -96,6 +96,18 @@ const WALLS = createSection("Walls", [
     },
     {
         id: 'wall-3',
+        target: 64,
+        name: "Gates",
+        description: "Use corners to your advantage",
+        par: 7,
+        grid: [
+            ['W', 'W', 'W', 32, 'W'],
+            [8, 16, 0, 0, 8],
+            ['W', 0, 'W', 'W', 'W']
+        ]
+    },
+    {
+        id: 'wall-4',
         target: 16,
         name: "Cornered",
         description: "Plan Carefully. Use undo if you get stuck.",
@@ -108,7 +120,7 @@ const WALLS = createSection("Walls", [
         ]
     },
     {
-        id: 'wall-4',
+        id: 'wall-5',
         target: 4,
         name: "4 Rooms",
         description: "Thin walls block movement between cells.",
@@ -123,7 +135,26 @@ const WALLS = createSection("Walls", [
             vertical: [[0, 1], [3, 1]],
             horizontal: [[1, 0], [1, 1], [1, 3]]
         }
+    },
+    {
+        id: 'wall-6',
+        target: 32,
+        name: "Down and Up",
+        description: "Thin walls block movement between cells.",
+        par: 8,
+        grid: [
+            [0, 0, 2, 4, 16],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [8, 2, 0, 0, 0]
+        ],
+        thinWalls: {
+            vertical: [],
+            horizontal: [[0, 1], [0, 2], [0, 3], [0, 4], [1, 0], [1, 1], [1, 2], [1, 3], [2, 1], [2, 2], [2, 3], [2, 4], [3, 0], [3, 1], [3, 2], [3, 3]]
+        }
     }
+
 ]);
 
 const LOCKS = createSection("Locks", [
@@ -152,14 +183,38 @@ const LOCKS = createSection("Locks", [
             [0, L(2), L(4), 0],
             [L(32), 0, L(64), L(1024)]
         ]
+    },
+    {
+        id: 'lock-3',
+        target: 16,
+        name: "Lockpick",
+        description: "Locked cells can trap tiles. Use merging to free them.",
+        par: 5,
+        grid: [
+            ['W', 'W', 'W', 4, 'W'],
+            [2, L(0), 0, L(0), L(8)],
+            ['W', 2, 'W', 'W', 'W']
+        ]
     }
 ]);
 
 const STICKY = createSection("Sticky", [
     {
         id: 'stick-1',
-        target: 16,
+        target: 4,
         name: "Sticky Situation",
+        description: "Sticky tiles prevent further movement.",
+        par: 3,
+        grid: [
+            ['W', 'W', 'W', 'W'],
+            [2, S(0), S(0), L(2)],
+            ['W', 'W', 'W', 'W']
+        ]
+    },
+    {
+        id: 'stick-2',
+        target: 16,
+        name: "Stickier Situation",
         description: "Sticky tiles prevent further movement.",
         grid: [
             [0, 2, S(0), 0],
@@ -173,6 +228,45 @@ const STICKY = createSection("Sticky", [
 const TEMPORARY = createSection("Temporary", [
     {
         id: 'temp-1',
+        target: 4,
+        name: "One-way path",
+        description: "Temporary tile become walls after",
+        par: 7,
+        grid: [
+            ['W', 0, T(1), 0],
+            [2, T(1), 'W', T(1)],
+            ['W', 'W', T(1), 0],
+            [L(2), T(1), 0, 'W']
+        ]
+    },
+    {
+        id: 'temp-2',
+        target: 4,
+        name: "Walls of Time",
+        description: "Use temporary walls to your advantage",
+        par: 5,
+        grid: [
+            ['W', 'W', 0, 'W'],
+            [L(2), 0, 0, 'W'],
+            ['W', 'W', T(1), 'W'],
+            [2, T(1), 0, 0]
+        ]
+    },
+    {
+        id: 'temp-3',
+        target: 32,
+        name: "Rooms of Time",
+        description: "Number on temporary tiles denote how many times you can enter.",
+        grid: [
+            ['W', 'W', 0, T(2), 0],
+            [L(16), 0, 0, 'W', L(4)],
+            ['W', 'W', T(3), 'W', 'W'],
+            [2, 0, 0, T(2), 0],
+            ['W', 'W', L(8), 'W', L(2)]
+        ]
+    },
+    {
+        id: 'temp-4',
         target: 16,
         name: "Crumbling Path",
         description: "The path behind you crumbles. Plan your route!",
@@ -184,28 +278,30 @@ const TEMPORARY = createSection("Temporary", [
         ],
         thinWalls: {
             vertical: [],
-            horizontal: [[0, 0]]
+            horizontal: [[0, 0], [0, 1]]
         }
-    },
-    {
-        id: 'temp-2',
-        target: 16,
-        name: "2 Way Bridge",
-        description: "You can only cross the bridge twice.",
-        grid: [
-            [L(8), 0, 'W', L(4)],
-            [0, 0, T(2), 0],
-            [4, 0, 'W', 'W']
-        ]
     }
+
 ]);
 
 const GENERATORS = createSection("Generators", [
     {
         id: 'gen-1',
+        target: 16,
+        name: "Assembly Line",
+        description: "Generators create numbers.",
+        par: 10,
+        grid: [
+            ['W', 'W', 'W', 'W'],
+            [G(2), 0, 0, 0],
+            ['W', 'W', 'W', 'W']
+        ]
+    },
+    {
+        id: 'gen-2',
         target: 32,
         name: "Factory",
-        description: "Generators create numbers.",
+        description: "Generators produce tiles in every direction.",
         par: 19,
         grid: [
             [G(2), 0, 0],
@@ -219,12 +315,13 @@ const GENERATORS = createSection("Generators", [
 const NEGATIVITY = createSection("Negativity", [
     {
         id: 'neg-1',
-        target: -4,
+        target: -16,
         name: "Negative Steps",
         description: "Merge negative tiles to reach the target.",
         grid: [
-            [-2, 0],
-            [0, -2]
+            [-2, 0, -2],
+            [0, 0, 0],
+            [-4, 0, -8]
         ]
     },
     {
@@ -233,14 +330,11 @@ const NEGATIVITY = createSection("Negativity", [
         name: "Collision",
         description: "Merge positive and negative tiles to cancel them out!",
         grid: [
-            ['W', 0, -2, 'W', 'W'],
-            [16, L(2), 0, L(8), L(16)],
-            ['W', 'W', -8, 0, 'W']
-        ],
-        thinWalls: {
-            vertical: [],
-            horizontal: [[0, 2], [1, 2]]
-        }
+            ['W', -8, 'W', 'W', 'W'],
+            [32, L(8), 0, L(-16), L(32)],
+            ['W', 'W', 'W', 16, 'W']
+        ]
+
     }
 ]);
 

@@ -22,7 +22,7 @@ export const isTemporary = (cell: Cell): cell is TemporaryCell => {
 
 export const getCellValue = (cell: Cell): number => {
     if (typeof cell === 'number') return cell;
-    if (cell === WALL) return 0; // Explicitly handle WALL string as 0 value
+    if (cell === WALL) return 0;
     if (isLocked(cell)) return cell.value;
     if (isGenerator(cell)) return cell.value;
     if (isSticky(cell)) return cell.value;
@@ -90,12 +90,11 @@ const slideAndMergeWithSticky = (chunk: Cell[]): ProcessResult => {
         while (currentIdx > 0) {
             const leftIdx = currentIdx - 1;
             const currentCell = result[currentIdx];
-            const leftCell = result[leftIdx]; // Note: This might be a newly created WALL from previous moves
+            const leftCell = result[leftIdx];
             const currentVal = getCellValue(currentCell);
             const leftVal = getCellValue(leftCell);
 
             // 1. Move into Empty
-            // Important: Check that the "empty" cell isn't actually a WALL
             if (leftVal === 0 && leftCell !== WALL) {
                 if (isSticky(leftCell)) {
                     result[leftIdx] = updateCellValue(leftCell, currentVal);
@@ -147,7 +146,7 @@ const processChunkWithLocked = (chunk: Cell[]): ProcessResult => {
     // Process Left (Standard slide)
     const leftRes = slideAndMergeWithSticky(leftPart);
 
-    // Process Right (Recursive, to handle subsequent locks)
+    // Process Right (Recursive)
     const rightRes = processChunkWithLocked(rightPart);
 
     // Check if the first tile of the processed Right part can merge into this Locked cell
@@ -155,27 +154,49 @@ const processChunkWithLocked = (chunk: Cell[]): ProcessResult => {
     const incomingTile = incomingTileIdx !== -1 ? rightRes.grid[incomingTileIdx] : 0;
     const isIncomingMerged = incomingTileIdx !== -1 ? rightRes.merged[incomingTileIdx] : false;
 
-    if (incomingTile !== 0 &&
-        incomingTileIdx === 0 &&
-        !isLocked(incomingTile) &&
-        !isIncomingMerged &&
-        canMerge(incomingTile, lockedCell)) {
+    // Check if incoming tile is stuck (just entered a sticky cell this turn)
+    let isJustStuck = false;
+    if (incomingTileIdx === 0 && isSticky(incomingTile)) {
+        const originalCell = rightPart[incomingTileIdx];
+        if (getCellValue(originalCell) === 0) {
+            isJustStuck = true;
+        }
+    }
 
-        // --- MERGE HAPPENS HERE ---
-        const valIn = getCellValue(incomingTile);
-        const valLocked = getCellValue(lockedCell);
-        const mergedValue = getMergeResult(valIn, valLocked);
+    // Determine if we should merge OR trap
+    // Changed type to Cell | null to allow returning Objects (LockedCell)
+    let mergedCell: Cell | null = null;
+    const valIn = getCellValue(incomingTile);
+    const valLocked = getCellValue(lockedCell);
+
+    // Logic:
+    // 1. If Locked Cell is 0 (L(0)), it acts as a trap for any valid number tile.
+    // 2. Otherwise, standard merge rules apply (must match values).
+    // 3. Generators cannot move/merge into locks.
+    if (incomingTile !== 0 && incomingTileIdx === 0 && !isLocked(incomingTile) && !isGenerator(incomingTile) && !isIncomingMerged && !isJustStuck) {
+        if (valLocked === 0) {
+            // Trap: L(0) takes the value of the incoming tile
+            // FIX: Return a LockedCell object so it stays locked
+            mergedCell = { ...lockedCell, value: valIn };
+        } else if (canMerge(incomingTile, lockedCell)) {
+            // Merge: Combine values (Standard behavior: unlocks to a number)
+            mergedCell = getMergeResult(valIn, valLocked);
+        }
+    }
+
+    if (mergedCell !== null) {
+        // --- MERGE / TRAP EXECUTED ---
 
         // Remove the tile that merged from the right side
         const rightGridMod = [...rightRes.grid];
         rightGridMod[incomingTileIdx] = makeEmpty(incomingTile);
 
-        // Recursively process the remainder using processChunkWithLocked.
+        // Recursively process the remainder
         const compactedRight = processChunkWithLocked(rightGridMod);
 
-        // Result: The locked tile unlocks (becomes a number) after merge
+        // Result: The locked tile updates its value
         return {
-            grid: [...leftRes.grid, mergedValue, ...compactedRight.grid],
+            grid: [...leftRes.grid, mergedCell, ...compactedRight.grid],
             merged: [...leftRes.merged, true, ...compactedRight.merged]
         };
     } else {
