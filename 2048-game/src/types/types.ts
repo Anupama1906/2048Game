@@ -9,15 +9,20 @@ export interface GeneratorCell {
     value: number;
 }
 
-// NEW: Sticky Cell Definition
 export interface StickyCell {
     type: 'sticky';
     value: number;
 }
 
-export type Cell = number | 'WALL' | LockedCell | GeneratorCell | StickyCell;
+// NEW: Temporary Cell Definition
+export interface TemporaryCell {
+    type: 'temporary';
+    value: number;
+    limit: number; // Number of times it can be left
+}
 
-// ... (rest of the file remains the same)
+export type Cell = number | 'WALL' | LockedCell | GeneratorCell | StickyCell | TemporaryCell;
+
 export type Grid = Cell[][];
 export type GameState = 'playing' | 'won' | 'lost';
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
@@ -30,7 +35,7 @@ export interface Level {
     description: string;
     section?: string;
     par?: number;
-    grid: (number | 'W' | 'WALL' | 0 | LockedCell | GeneratorCell | StickyCell)[][];
+    grid: (number | 'W' | 'WALL' | 0 | LockedCell | GeneratorCell | StickyCell | TemporaryCell)[][];
     thinWalls?: {
         vertical: [number, number][];
         horizontal: [number, number][];

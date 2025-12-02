@@ -1,14 +1,17 @@
+// src/Target2048.tsx
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import type { AppScreen, Level } from './types/types';
 import MainMenuView from './components/MainMenuView';
+import UsernameModal from './components/UsernameModal';
+import DailyGameView from './components/DailyGameView';
 import { INITIAL_LEVELS } from './data/levels';
 import { getDailyLevel } from './utils/daily';
+import { useAuth } from './contexts/AuthContext';
 
 const LevelSelectView = lazy(() => import('./components/LevelSelectView'));
 const CreatorView = lazy(() => import('./components/CreatorView'));
 const GameView = lazy(() => import('./components/GameView'));
 
-// Loading component
 const LoadingScreen = () => (
     <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"></div>
@@ -19,6 +22,9 @@ export default function Target2048App() {
     const [screen, setScreen] = useState<AppScreen>('menu');
     const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
     const [isDarkMode, setIsDarkMode] = useState(false);
+    const [showUsernameModal, setShowUsernameModal] = useState(false);
+
+    const { user, username, loading: authLoading, signIn } = useAuth();
 
     const [bestScores, setBestScores] = useState<Record<string | number, number>>(() => {
         const saved = localStorage.getItem('target2048_scores');
@@ -39,11 +45,22 @@ export default function Target2048App() {
         setScreen('game');
     }, []);
 
-    const handlePlayDaily = useCallback(() => {
+    const handlePlayDaily = useCallback(async () => {
+        // Ensure user is signed in
+        if (!user) {
+            await signIn();
+        }
+
+        // Check if username is set
+        if (!username) {
+            setShowUsernameModal(true);
+            return;
+        }
+
         const dailyLevel = getDailyLevel();
         setCurrentLevel(dailyLevel);
         setScreen('game');
-    }, []);
+    }, [user, username, signIn]);
 
     const handlePlayGenerated = useCallback((level: Level) => {
         setCurrentLevel(level);
@@ -57,7 +74,7 @@ export default function Target2048App() {
                 if (currentBest === undefined || moves < currentBest) {
                     return { ...prev, [currentLevel.id]: moves };
                 }
-                return prev; // Return same reference if no update needed
+                return prev;
             });
         }
     }, [currentLevel]);
@@ -83,6 +100,21 @@ export default function Target2048App() {
         setScreen('menu');
         setCurrentLevel(null);
     }, []);
+
+    const handleUsernameSet = () => {
+        setShowUsernameModal(false);
+        handlePlayDaily();
+    };
+
+    if (authLoading) {
+        return (
+            <div className={isDarkMode ? 'dark' : ''}>
+                <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
+                    <LoadingScreen />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={isDarkMode ? 'dark' : ''}>
@@ -115,17 +147,30 @@ export default function Target2048App() {
                         )}
 
                         {screen === 'game' && currentLevel && (
-                            <GameView
-                                level={currentLevel}
-                                bestScore={bestScores[currentLevel.id]}
-                                onBack={() => setScreen(currentLevel.section === "Daily" ? 'menu' : 'level-select')}
-                                onLevelWon={handleLevelWon}
-                                onComplete={handleNextLevel}
-                            />
+                            <>
+                                {currentLevel.section === "Daily" ? (
+                                    <DailyGameView
+                                        level={currentLevel}
+                                        onBack={handleBackToMenu}
+                                    />
+                                ) : (
+                                    <GameView
+                                        level={currentLevel}
+                                        bestScore={bestScores[currentLevel.id]}
+                                        onBack={() => setScreen('level-select')}
+                                        onLevelWon={handleLevelWon}
+                                        onComplete={handleNextLevel}
+                                    />
+                                )}
+                            </>
                         )}
                     </Suspense>
                 </div>
             </div>
+
+            {showUsernameModal && (
+                <UsernameModal onClose={handleUsernameSet} />
+            )}
         </div>
     );
 }

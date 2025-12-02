@@ -1,10 +1,14 @@
+// src/App.tsx
 import Target2048App from './Target2048';
 import ErrorBoundary from './components/ErrorBoundary';
+import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
   return (
     <ErrorBoundary>
-      <Target2048App />
+      <AuthProvider>
+        <Target2048App />
+      </AuthProvider>
     </ErrorBoundary>
   );
 }

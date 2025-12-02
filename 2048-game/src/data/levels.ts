@@ -1,9 +1,11 @@
-import type { Level, LockedCell, GeneratorCell, StickyCell } from "../types/types";
+// src/data/levels.ts
+import type { Level, LockedCell, GeneratorCell, StickyCell, TemporaryCell } from "../types/types";
 
 // --- HELPERS ---
 const L = (val: number): LockedCell => ({ type: 'locked', value: val });
 const G = (val: number): GeneratorCell => ({ type: 'generator', value: val });
 const S = (val: number): StickyCell => ({ type: 'sticky', value: val });
+const T = (limit: number, val: number = 0): TemporaryCell => ({ type: 'temporary', limit, value: val });
 
 const createSection = (sectionName: string, levels: Omit<Level, 'section'>[]): Level[] => {
     return levels.map(level => ({
@@ -168,6 +170,36 @@ const STICKY = createSection("Sticky", [
     }
 ]);
 
+const TEMPORARY = createSection("Temporary", [
+    {
+        id: 'temp-1',
+        target: 16,
+        name: "Crumbling Path",
+        description: "The path behind you crumbles. Plan your route!",
+        grid: [
+            [8, T(1), T(1), T(1)],
+            [T(1), T(1), 2, T(1)],
+            [T(1), L(8), T(1), T(1)],
+            [T(1), T(1), T(1), T(1)]
+        ],
+        thinWalls: {
+            vertical: [],
+            horizontal: [[0, 0]]
+        }
+    },
+    {
+        id: 'temp-2',
+        target: 16,
+        name: "2 Way Bridge",
+        description: "You can only cross the bridge twice.",
+        grid: [
+            [L(8), 0, 'W', L(4)],
+            [0, 0, T(2), 0],
+            [4, 0, 'W', 'W']
+        ]
+    }
+]);
+
 const GENERATORS = createSection("Generators", [
     {
         id: 'gen-1',
@@ -252,6 +284,7 @@ export const INITIAL_LEVELS: Level[] = [
     ...WALLS,
     ...LOCKS,
     ...STICKY,
+    ...TEMPORARY,
     ...GENERATORS,
     ...NEGATIVITY,
     ...MISCELLANEOUS

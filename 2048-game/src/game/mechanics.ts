@@ -1,5 +1,5 @@
 // src/game/mechanics.ts
-import type { Cell, LockedCell, GeneratorCell, StickyCell } from '../types/types';
+import type { Cell, LockedCell, GeneratorCell, StickyCell, TemporaryCell } from '../types/types';
 import { WALL } from '../constants/game';
 
 // --- HELPERS ---
@@ -16,21 +16,40 @@ export const isSticky = (cell: Cell): cell is StickyCell => {
     return typeof cell === 'object' && cell !== null && (cell as any).type === 'sticky';
 };
 
+export const isTemporary = (cell: Cell): cell is TemporaryCell => {
+    return typeof cell === 'object' && cell !== null && (cell as any).type === 'temporary';
+};
+
 export const getCellValue = (cell: Cell): number => {
     if (typeof cell === 'number') return cell;
+    if (cell === WALL) return 0; // Explicitly handle WALL string as 0 value
     if (isLocked(cell)) return cell.value;
     if (isGenerator(cell)) return cell.value;
     if (isSticky(cell)) return cell.value;
+    if (isTemporary(cell)) return cell.value;
     return 0;
 };
 
+// Called when a tile leaves a cell
 const makeEmpty = (cell: Cell): Cell => {
     if (isSticky(cell)) return { type: 'sticky', value: 0 };
+
+    if (isTemporary(cell)) {
+        // Decrement limit when leaving
+        const newLimit = cell.limit - 1;
+        if (newLimit <= 0) {
+            return WALL; // Turns into a wall immediately
+        }
+        return { ...cell, value: 0, limit: newLimit };
+    }
+
     return 0;
 };
 
+// Called when a tile enters a cell (or merges into it)
 const updateCellValue = (cell: Cell, newVal: number): Cell => {
     if (isSticky(cell)) return { type: 'sticky', value: newVal };
+    if (isTemporary(cell)) return { ...cell, value: newVal }; // Preserve limit, just update value
     return newVal;
 };
 
@@ -71,12 +90,13 @@ const slideAndMergeWithSticky = (chunk: Cell[]): ProcessResult => {
         while (currentIdx > 0) {
             const leftIdx = currentIdx - 1;
             const currentCell = result[currentIdx];
-            const leftCell = result[leftIdx];
+            const leftCell = result[leftIdx]; // Note: This might be a newly created WALL from previous moves
             const currentVal = getCellValue(currentCell);
             const leftVal = getCellValue(leftCell);
 
             // 1. Move into Empty
-            if (leftVal === 0) {
+            // Important: Check that the "empty" cell isn't actually a WALL
+            if (leftVal === 0 && leftCell !== WALL) {
                 if (isSticky(leftCell)) {
                     result[leftIdx] = updateCellValue(leftCell, currentVal);
                     result[currentIdx] = makeEmpty(currentCell);
@@ -115,7 +135,7 @@ const processChunkWithLocked = (chunk: Cell[]): ProcessResult => {
     // 1. Find the first Locked Cell
     const firstLockedIdx = chunk.findIndex(c => isLocked(c));
 
-    // If no locked cells, just use the sticky-aware slider
+    // If no locked cells, just use the standard slider
     if (firstLockedIdx === -1) {
         return slideAndMergeWithSticky(chunk);
     }
