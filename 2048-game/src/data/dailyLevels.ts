@@ -268,14 +268,14 @@ export const DAILY_LEVELS: Level[] = [
     },
     {
         id: 'daily-20',
-        target: 16,
+        target: -256,
         name: "Negative Puzzle",
         description: "Balance positive and negative.",
         par: 10,
         grid: [
-            [32, -16, 0],
-            [0, 0, -8],
-            [-4, 0, 2]
+            [-32, -64, -16],
+            [-2, 0, -8],
+            [-4, -128, -2]
         ]
     },
     {
