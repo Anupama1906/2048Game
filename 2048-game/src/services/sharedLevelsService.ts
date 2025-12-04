@@ -40,7 +40,7 @@ const deserializeLevel = (data: any): CustomLevel => {
         return cell;
     };
 
-    // FIX: Handle stringified grid (new format) or raw grid (legacy)
+    // 1. Handle stringified grid
     let rawGrid = data.grid;
     if (typeof rawGrid === 'string') {
         try {
@@ -55,9 +55,21 @@ const deserializeLevel = (data: any): CustomLevel => {
         ? rawGrid.map((row: any[]) => row.map((cell: any) => deserializeCell(cell)))
         : [];
 
+    // 2. Handle stringified thinWalls [NEW FIX]
+    let thinWalls = data.thinWalls;
+    if (typeof thinWalls === 'string') {
+        try {
+            thinWalls = JSON.parse(thinWalls);
+        } catch (e) {
+            console.error('Failed to parse thinWalls JSON:', e);
+            thinWalls = undefined;
+        }
+    }
+
     return {
         ...data,
-        grid: deserializedGrid
+        grid: deserializedGrid,
+        thinWalls: thinWalls
     } as CustomLevel;
 };
 
@@ -101,9 +113,10 @@ export const shareLevel = async (level: CustomLevel): Promise<string> => {
         name: level.name,
         description: level.description,
         target: level.target,
-        // FIX: Stringify the grid to avoid "Nested arrays not supported" error
+        // FIX 1: Stringify the grid
         grid: JSON.stringify(serializedGrid),
-        thinWalls: level.thinWalls || null,
+        // FIX 2: Stringify thinWalls if they exist (arrays of arrays cause error)
+        thinWalls: level.thinWalls ? JSON.stringify(level.thinWalls) : null,
         section: level.section || 'Custom',
         par: level.par || null,
         createdBy: level.createdBy,
