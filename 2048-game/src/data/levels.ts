@@ -158,15 +158,15 @@ const WALLS = createSection("Walls", [
 const LOCKS = createSection("Locks", [
     {
         id: 'lock-1',
-        target: 32,
+        target: 256,
         name: "Locked Chain",
         description: "Locked cells cannot be moved or merged until they are unlocked.",
-        par: 6,
+        par: 7,
         grid: [
-            [2, 'W', 0, 'W'],
-            [0, 0, L(8), 0],
-            [L(2), L(4), 0, L(16)],
-            ['W', 0, 'W', 0]
+            [2, 'W', 'W', L(128)],
+            [0, L(8), L(16), 0],
+            [L(2), L(4), L(32), L(64)],
+            ['W', 'W', 'W', 'W']
         ]
     },
 
@@ -245,7 +245,7 @@ const TEMPORARY = createSection("Temporary", [
         id: 'temp-1',
         target: 4,
         name: "One-way path",
-        description: "Temporary tile become walls after",
+        description: "Temporary tiles become walls after passing through",
         par: 7,
         grid: [
             ['W', 0, T(1), 0],
@@ -272,7 +272,7 @@ const TEMPORARY = createSection("Temporary", [
         target: 32,
         name: "Rooms of Time",
         description: "Number on temporary tiles denote how many times you can enter.",
-        par:14,
+        par: 14,
         grid: [
             ['W', 'W', 0, T(2), 0],
             [L(16), 0, 0, 'W', L(4)],
@@ -286,7 +286,7 @@ const TEMPORARY = createSection("Temporary", [
         target: 16,
         name: "Crumbling Path",
         description: "The path behind you crumbles. Plan your route!",
-        par:5,
+        par: 5,
         grid: [
             [8, T(1), T(1), T(1)],
             [T(1), T(1), 2, T(1)],
@@ -347,7 +347,7 @@ const NEGATIVITY = createSection("Negativity", [
         target: 64,
         name: "Collision",
         description: "Merge positive and negative tiles to cancel them out!",
-        par:3,
+        par: 3,
         grid: [
             ['W', -8, 'W', 'W', 'W'],
             [32, L(8), 0, L(-16), L(32)],
