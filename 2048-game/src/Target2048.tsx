@@ -9,7 +9,7 @@ import LoadingScreen from './components/LoadingScreen';
 import MyLevelsView from './components/MyLevelsView';
 import LevelEditorView from './components/LevelEditorView';
 import CustomLevelTestView from './components/CustomLevelTestView';
-import CommunityLevelsView from './components/CommunityLevelsView';
+import CommunityLevelsView, { type CommunityTab } from './components/CommunityLevelsView';
 import { INITIAL_LEVELS } from './data/levels';
 import { getDailyLevel } from './utils/daily';
 import { useAuth } from './contexts/AuthContext';
@@ -26,6 +26,10 @@ export default function Target2048App() {
     const [testingLevel, setTestingLevel] = useState<CustomLevel | null>(null);
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [showUsernameModal, setShowUsernameModal] = useState(false);
+    
+    // Track states for Community View and Return path
+    const [communityTab, setCommunityTab] = useState<CommunityTab>('recent'); 
+    const [returnToScreen, setReturnToScreen] = useState<ExtendedAppScreen>('my-levels');
 
     const { user, username, loading: authLoading, signIn } = useAuth();
 
@@ -62,11 +66,6 @@ export default function Target2048App() {
         setCurrentLevel(dailyLevel);
         setScreen('game');
     }, [user, username, signIn]);
-
-    const handlePlayGenerated = useCallback((level: Level) => {
-        setCurrentLevel(level);
-        setScreen('game');
-    }, []);
 
     const handleLevelWon = useCallback((moves: number) => {
         if (currentLevel) {
@@ -135,6 +134,7 @@ export default function Target2048App() {
     const handlePlayCustomLevel = (level: CustomLevel) => {
         setTestingLevel(level);
         setScreen('test-level');
+        setReturnToScreen('my-levels');
     };
 
     const handleBackToMyLevels = () => {
@@ -142,6 +142,14 @@ export default function Target2048App() {
         setEditingLevel(null);
         setTestingLevel(null);
     };
+
+    const handleBackFromTest = useCallback(() => {
+        setScreen(returnToScreen);
+        setTestingLevel(null);
+        if (returnToScreen === 'my-levels') {
+            setEditingLevel(null);
+        }
+    }, [returnToScreen]);
 
     const handleEditFromTest = () => {
         if (testingLevel) {
@@ -151,8 +159,9 @@ export default function Target2048App() {
         }
     };
 
+    // FIX: Use returnToScreen instead of hardcoding 'my-levels'
     const handleLevelVerified = () => {
-        setScreen('my-levels');
+        setScreen(returnToScreen);
         setTestingLevel(null);
     };
 
@@ -185,7 +194,10 @@ export default function Target2048App() {
                             onPlay={(level) => {
                                 setTestingLevel(level);
                                 setScreen('test-level');
+                                setReturnToScreen('community-levels');
                             }}
+                            activeTab={communityTab}
+                            onTabChange={setCommunityTab}
                         />
                     )}
 
@@ -209,7 +221,7 @@ export default function Target2048App() {
                     {screen === 'test-level' && testingLevel && (
                         <CustomLevelTestView
                             level={testingLevel}
-                            onBack={handleBackToMyLevels}
+                            onBack={handleBackFromTest}
                             onEdit={handleEditFromTest}
                             onVerified={handleLevelVerified}
                         />

@@ -1,48 +1,35 @@
 // src/components/CommunityLevelsView.tsx
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Search, TrendingUp, Clock, Play, User, Target, AlertCircle } from 'lucide-react';
+import { ChevronRight, Search, Clock, Play, User, Target, AlertCircle } from 'lucide-react';
 import type { CustomLevel } from '../types/editorTypes';
-import { loadSharedLevel, getPopularLevels, getRecentLevels, incrementPlayCount } from '../services/sharedLevelsService';
+import { loadSharedLevel, getRecentLevels, incrementPlayCount } from '../services/sharedLevelsService';
+
+export type CommunityTab = 'code' | 'recent';
 
 interface CommunityLevelsViewProps {
     onBack: () => void;
     onPlay: (level: CustomLevel) => void;
+    activeTab: CommunityTab;
+    onTabChange: (tab: CommunityTab) => void;
 }
 
-type Tab = 'code' | 'popular' | 'recent';
-
-const CommunityLevelsView: React.FC<CommunityLevelsViewProps> = ({ onBack, onPlay }) => {
-    const [activeTab, setActiveTab] = useState<Tab>('code');
+const CommunityLevelsView: React.FC<CommunityLevelsViewProps> = ({ onBack, onPlay, activeTab, onTabChange }) => {
+    // State is now managed by parent
     const [shareCode, setShareCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [popularLevels, setPopularLevels] = useState<CustomLevel[]>([]);
     const [recentLevels, setRecentLevels] = useState<CustomLevel[]>([]);
 
     useEffect(() => {
-        if (activeTab === 'popular') {
-            loadPopularLevels();
-        } else if (activeTab === 'recent') {
+        if (activeTab === 'recent') {
             loadRecentLevels();
         }
     }, [activeTab]);
 
-    const loadPopularLevels = async () => {
-        setLoading(true);
-        try {
-            const levels = await getPopularLevels(20);
-            setPopularLevels(levels);
-        } catch (err) {
-            console.error('Failed to load popular levels:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const loadRecentLevels = async () => {
         setLoading(true);
         try {
-            const levels = await getRecentLevels(20);
+            const levels = await getRecentLevels(10);
             setRecentLevels(levels);
         } catch (err) {
             console.error('Failed to load recent levels:', err);
@@ -88,11 +75,6 @@ const CommunityLevelsView: React.FC<CommunityLevelsViewProps> = ({ onBack, onPla
         onPlay(level);
     };
 
-    const formatDate = (isoString: string) => {
-        const date = new Date(isoString);
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    };
-
     return (
         <div className="flex flex-col h-full w-full max-w-5xl mx-auto px-5 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
             {/* Header */}
@@ -125,7 +107,7 @@ const CommunityLevelsView: React.FC<CommunityLevelsViewProps> = ({ onBack, onPla
             {/* Tabs */}
             <div className="flex gap-2 mb-6">
                 <button
-                    onClick={() => setActiveTab('code')}
+                    onClick={() => onTabChange('code')}
                     className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition ${
                         activeTab === 'code'
                             ? 'bg-indigo-600 text-white shadow-lg'
@@ -136,18 +118,7 @@ const CommunityLevelsView: React.FC<CommunityLevelsViewProps> = ({ onBack, onPla
                     Enter Code
                 </button>
                 <button
-                    onClick={() => setActiveTab('popular')}
-                    className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition ${
-                        activeTab === 'popular'
-                            ? 'bg-indigo-600 text-white shadow-lg'
-                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                    }`}
-                >
-                    <TrendingUp size={16} className="inline mr-2" />
-                    Popular
-                </button>
-                <button
-                    onClick={() => setActiveTab('recent')}
+                    onClick={() => onTabChange('recent')}
                     className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition ${
                         activeTab === 'recent'
                             ? 'bg-indigo-600 text-white shadow-lg'
@@ -208,20 +179,20 @@ const CommunityLevelsView: React.FC<CommunityLevelsViewProps> = ({ onBack, onPla
                     </div>
                 )}
 
-                {(activeTab === 'popular' || activeTab === 'recent') && (
+                {activeTab === 'recent' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {loading ? (
                             <div className="col-span-full flex items-center justify-center py-20">
                                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent" />
                             </div>
-                        ) : (activeTab === 'popular' ? popularLevels : recentLevels).length === 0 ? (
+                        ) : recentLevels.length === 0 ? (
                             <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-500">
                                 <Search size={48} className="mb-4 opacity-50" />
                                 <p className="text-lg font-medium">No levels found</p>
                                 <p className="text-sm">Be the first to share a level!</p>
                             </div>
                         ) : (
-                            (activeTab === 'popular' ? popularLevels : recentLevels).map((level) => (
+                            recentLevels.map((level) => (
                                 <div
                                     key={level.shareCode || level.id}
                                     className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-slate-100 dark:border-slate-700"
