@@ -295,17 +295,21 @@ export const DAILY_LEVELS: Level[] = [
     // Week 4 - Expert Level
     {
         id: 'daily-22',
-        target: 256,
-        name: "Spiral",
-        description: "Follow the spiral to victory.",
+        target: 2048,
+        name: "Negetive Unblocker",
+        description: "Use negetive numbers to unblock the path",
         par: 18,
         grid: [
-            [2, 2, 2, 2, 2],
-            [4, 'W', 'W', 'W', 4],
-            [8, 'W', 16, 'W', 8],
-            [16, 'W', 'W', 'W', 16],
-            [32, 32, 32, 32, 32]
-        ]
+            [1024, 0, L(8), 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, L(8)],
+            [0, 0, 0, 0, 0],
+            [G(-2), 0, 0, 0, L(1024)]
+        ],
+        thinWalls: {
+            vertical: [[1, 3], [3, 3], [4, 3]],
+            horizontal: [[0, 0], [0, 1], [0, 3]]
+        }
     },
     {
         id: 'daily-23',

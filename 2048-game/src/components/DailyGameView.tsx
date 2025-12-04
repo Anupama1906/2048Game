@@ -125,8 +125,6 @@ const DailyGameView: React.FC<DailyGameViewProps> = ({ level, onBack }) => {
         await handleSubmitScore();
     };
 
-    // ... [Rest of move handling logic: throttledMove, key handlers, touch handlers - No changes] ...
-
     const throttledMove = useCallback((direction: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT') => {
         const now = Date.now();
         if (now - lastMoveTime.current < MOVE_DELAY) return;
@@ -225,6 +223,26 @@ const DailyGameView: React.FC<DailyGameViewProps> = ({ level, onBack }) => {
                         aspectRatio: `${cols}/${rows}`
                     }}>
                     {memoizedGrid}
+
+                    {/* NEW: Render Thin Walls */}
+                    {level.thinWalls?.vertical?.map(([r, c], i) => (
+                        <div key={`v-${i}`} className="absolute bg-slate-800 dark:bg-slate-200 rounded-full z-10 shadow-sm"
+                            style={{
+                                width: '6px',
+                                height: `calc(${100 / rows}% - ${1.25 * gapRem}rem)`,
+                                top: `calc(${r * 100 / rows}% + ${gapRem}rem * (${r / rows} + 0.5))`,
+                                left: `calc( ${(c + 1) * 100 / cols}% + ${gapRem}rem * (${(c + 1) / cols} - 0.5) - 3px )`
+                            }} />
+                    ))}
+                    {level.thinWalls?.horizontal?.map(([r, c], i) => (
+                        <div key={`h-${i}`} className="absolute bg-slate-800 dark:bg-slate-200 rounded-full z-10 shadow-sm"
+                            style={{
+                                height: '6px',
+                                width: `calc(${100 / cols}% - ${gapRem}rem)`,
+                                left: `calc(${c * 100 / cols}% + ${gapRem}rem * (${c / cols} + 0.5))`,
+                                top: `calc( ${(r + 1) * 100 / rows}% + ${gapRem}rem * (${(r + 1) / rows} - 0.5) - 3px )`
+                            }} />
+                    ))}
                 </div>
 
                 {/* Win/Loss Overlay */}
