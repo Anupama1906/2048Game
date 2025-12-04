@@ -1,12 +1,13 @@
 // src/components/DailyGameView.tsx
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { RotateCcw, ChevronRight, Trophy, RefreshCw, Clock, Award } from 'lucide-react';
+import { RotateCcw, ChevronRight, Trophy, RefreshCw, Clock, Award, User } from 'lucide-react';
 import type { Level } from '../types/types';
 import { useGame } from '../hooks/usegame';
 import Tile from './Tile';
 import { useAuth } from '../contexts/AuthContext';
 import { submitDailyScore, formatTime } from '../services/leaderboardService';
 import LeaderboardModal from './LeaderboardModal';
+import UsernameModal from './UsernameModal';
 
 interface DailyGameViewProps {
     level: Level;
@@ -15,7 +16,7 @@ interface DailyGameViewProps {
 
 const DailyGameView: React.FC<DailyGameViewProps> = ({ level, onBack }) => {
     const { grid, gameState, move, undo, reset, canUndo, moves } = useGame(level);
-    const { user, username } = useAuth();
+    const { user, username, setUsername } = useAuth();
 
     // Timer state
     const [time, setTime] = useState(0);
@@ -26,6 +27,7 @@ const DailyGameView: React.FC<DailyGameViewProps> = ({ level, onBack }) => {
     const [hasSubmitted, setHasSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showLeaderboard, setShowLeaderboard] = useState(false);
+    const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
 
     const touchStart = useRef<{ x: number; y: number } | null>(null);
     const touchEnd = useRef<{ x: number; y: number } | null>(null);
@@ -76,25 +78,32 @@ const DailyGameView: React.FC<DailyGameViewProps> = ({ level, onBack }) => {
         }
     }, [gameState]);
 
-    // Auto-submit score on win
-    useEffect(() => {
-        if (gameState === 'won' && !hasSubmitted && user && username) {
-            handleSubmitScore();
-        }
-    }, [gameState, hasSubmitted, user, username]);
-
     const handleSubmitScore = async () => {
-        if (!user || !username || hasSubmitted) return;
+        if (!user || hasSubmitted) return;
+
+        // Check if username exists
+        if (!username) {
+            setShowUsernamePrompt(true);
+            return;
+        }
 
         setIsSubmitting(true);
         try {
             await submitDailyScore(user.uid, username, level.id.toString(), moves, time);
             setHasSubmitted(true);
+            setShowLeaderboard(true);
         } catch (error) {
             console.error('Failed to submit score:', error);
+            alert('Failed to submit score. Please try again.');
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleUsernameSet = async () => {
+        setShowUsernamePrompt(false);
+        // Retry submission with new username
+        await handleSubmitScore();
     };
 
     const throttledMove = useCallback((direction: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT') => {
@@ -204,20 +213,42 @@ const DailyGameView: React.FC<DailyGameViewProps> = ({ level, onBack }) => {
                             <>
                                 <Trophy size={64} className="text-yellow-500 mb-4" />
                                 <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">Victory!</h2>
-                                <p className="text-slate-500 dark:text-slate-400 font-medium">
+                                <p className="text-slate-500 dark:text-slate-400 font-medium mb-4">
                                     {moves} moves in {formatTime(time)}
                                 </p>
-                                {isSubmitting ? (
-                                    <div className="mt-4 text-slate-600 dark:text-slate-400">Submitting...</div>
-                                ) : hasSubmitted ? (
+
+                                {hasSubmitted ? (
                                     <button
                                         onClick={() => setShowLeaderboard(true)}
-                                        className="mt-4 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105 flex items-center gap-2"
+                                        className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105 flex items-center gap-2"
                                     >
                                         <Award size={20} />
                                         View Leaderboard
                                     </button>
-                                ) : null}
+                                ) : (
+                                    <div className="space-y-3">
+                                        <button
+                                            onClick={handleSubmitScore}
+                                            disabled={isSubmitting}
+                                            className="w-full bg-green-500 hover:bg-green-600 disabled:bg-slate-400 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105 flex items-center justify-center gap-2"
+                                        >
+                                            {isSubmitting ? (
+                                                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                                            ) : (
+                                                <>
+                                                    <Award size={20} />
+                                                    Submit to Leaderboard
+                                                </>
+                                            )}
+                                        </button>
+                                        <button
+                                            onClick={() => setShowLeaderboard(true)}
+                                            className="w-full text-sm text-slate-500 hover:text-indigo-500 underline"
+                                        >
+                                            View Leaderboard
+                                        </button>
+                                    </div>
+                                )}
                             </>
                         ) : (
                             <>
@@ -254,6 +285,10 @@ const DailyGameView: React.FC<DailyGameViewProps> = ({ level, onBack }) => {
                     levelId={level.id.toString()}
                     onClose={() => setShowLeaderboard(false)}
                 />
+            )}
+
+            {showUsernamePrompt && (
+                <UsernameModal onClose={handleUsernameSet} />
             )}
         </div>
     );

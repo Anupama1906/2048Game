@@ -9,13 +9,14 @@ import {
     where,
     getDocs,
     orderBy,
-    limit
+    limit,
+    deleteDoc
 } from 'firebase/firestore';
 import type { CustomLevel } from '../types/editorTypes';
 
 // Generate a unique 6-character code
 export const generateShareCode = (): string => {
-    const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excluded ambiguous chars
+    const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
     for (let i = 0; i < 6; i++) {
         code += characters.charAt(Math.floor(Math.random() * characters.length));
@@ -40,7 +41,6 @@ const deserializeLevel = (data: any): CustomLevel => {
         return cell;
     };
 
-    // 1. Handle stringified grid
     let rawGrid = data.grid;
     if (typeof rawGrid === 'string') {
         try {
@@ -55,7 +55,6 @@ const deserializeLevel = (data: any): CustomLevel => {
         ? rawGrid.map((row: any[]) => row.map((cell: any) => deserializeCell(cell)))
         : [];
 
-    // 2. Handle stringified thinWalls [NEW FIX]
     let thinWalls = data.thinWalls;
     if (typeof thinWalls === 'string') {
         try {
@@ -73,29 +72,67 @@ const deserializeLevel = (data: any): CustomLevel => {
     } as CustomLevel;
 };
 
-// Share a level to Firebase
+// NEW: Check if this level was previously shared
+const findExistingSharedLevel = async (levelId: string | number): Promise<string | null> => {
+    const levelsRef = collection(db, 'sharedLevels');
+    const q = query(levelsRef, where('id', '==', levelId));
+    
+    try {
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+            return snapshot.docs[0].data().shareCode;
+        }
+    } catch (error) {
+        console.error('Error checking for existing shared level:', error);
+    }
+    
+    return null;
+};
+
+// NEW: Delete old shared version
+const deleteSharedLevel = async (shareCode: string): Promise<void> => {
+    try {
+        const levelRef = doc(db, 'sharedLevels', shareCode);
+        await deleteDoc(levelRef);
+        console.log('🗑️ Deleted old shared level:', shareCode);
+    } catch (error) {
+        console.error('Error deleting shared level:', error);
+    }
+};
+
+// Share a level to Firebase (updated to replace existing)
 export const shareLevel = async (level: CustomLevel): Promise<string> => {
     if (!level.isVerified) {
         throw new Error('Only verified levels can be shared');
     }
 
-    // Generate unique code
-    let shareCode = generateShareCode();
-    let attempts = 0;
-
-    // Ensure code is unique (max 5 attempts)
-    while (attempts < 5) {
-        const exists = await checkCodeExists(shareCode);
-        if (!exists) break;
+    // Check if this level was already shared before
+    const existingShareCode = await findExistingSharedLevel(level.id);
+    
+    let shareCode: string;
+    
+    if (existingShareCode) {
+        // Re-use the same share code for updates
+        shareCode = existingShareCode;
+        console.log('♻️ Updating existing shared level:', shareCode);
+    } else {
+        // Generate new unique code
         shareCode = generateShareCode();
-        attempts++;
+        let attempts = 0;
+        
+        while (attempts < 5) {
+            const exists = await checkCodeExists(shareCode);
+            if (!exists) break;
+            shareCode = generateShareCode();
+            attempts++;
+        }
+
+        if (attempts >= 5) {
+            throw new Error('Failed to generate unique code. Please try again.');
+        }
     }
 
-    if (attempts >= 5) {
-        throw new Error('Failed to generate unique code. Please try again.');
-    }
-
-    // Convert grid to Firebase-safe format (serialize complex cells)
+    // Convert grid to Firebase-safe format
     const serializeCell = (cell: any) => {
         if (typeof cell === 'object' && cell !== null && cell !== 'WALL') {
             return { _type: 'object', ...cell };
@@ -113,9 +150,7 @@ export const shareLevel = async (level: CustomLevel): Promise<string> => {
         name: level.name,
         description: level.description,
         target: level.target,
-        // FIX 1: Stringify the grid
         grid: JSON.stringify(serializedGrid),
-        // FIX 2: Stringify thinWalls if they exist (arrays of arrays cause error)
         thinWalls: level.thinWalls ? JSON.stringify(level.thinWalls) : null,
         section: level.section || 'Custom',
         par: level.par || null,
@@ -125,11 +160,11 @@ export const shareLevel = async (level: CustomLevel): Promise<string> => {
         isVerified: level.isVerified,
         shareCode,
         sharedAt: new Date().toISOString(),
-        plays: 0,
+        plays: existingShareCode ? (await getDoc(doc(db, 'sharedLevels', existingShareCode))).data()?.plays || 0 : 0, // Preserve play count
         likes: 0
     };
 
-    // Save to Firebase
+    // Save to Firebase (overwrites if exists)
     const levelRef = doc(db, 'sharedLevels', shareCode);
     await setDoc(levelRef, sharedLevel);
 

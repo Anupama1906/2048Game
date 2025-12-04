@@ -26,12 +26,12 @@ export default function Target2048App() {
     const [testingLevel, setTestingLevel] = useState<CustomLevel | null>(null);
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [showUsernameModal, setShowUsernameModal] = useState(false);
-    
-    // Track states for Community View and Return path
-    const [communityTab, setCommunityTab] = useState<CommunityTab>('recent'); 
+    const [usernameModalPurpose, setUsernameModalPurpose] = useState<'daily' | 'editor'>('daily');
+
+    const [communityTab, setCommunityTab] = useState<CommunityTab>('recent');
     const [returnToScreen, setReturnToScreen] = useState<ExtendedAppScreen>('my-levels');
 
-    const { user, username, loading: authLoading, signIn } = useAuth();
+    const { user, username, loading: authLoading, ensureSignedIn } = useAuth();
 
     const [bestScores, setBestScores] = useState<Record<string | number, number>>(() => {
         const saved = localStorage.getItem('target2048_scores');
@@ -52,20 +52,13 @@ export default function Target2048App() {
         setScreen('game');
     }, []);
 
+    // Updated: Just play the daily level without username check
     const handlePlayDaily = useCallback(async () => {
-        if (!user) {
-            await signIn();
-        }
-
-        if (!username) {
-            setShowUsernameModal(true);
-            return;
-        }
-
+        await ensureSignedIn(); // Ensure user has an ID
         const dailyLevel = getDailyLevel();
         setCurrentLevel(dailyLevel);
         setScreen('game');
-    }, [user, username, signIn]);
+    }, [ensureSignedIn]);
 
     const handleLevelWon = useCallback((moves: number) => {
         if (currentLevel) {
@@ -105,21 +98,25 @@ export default function Target2048App() {
 
     const handleUsernameSet = () => {
         setShowUsernameModal(false);
-        handlePlayDaily();
+
+        // Continue with the action that required username
+        if (usernameModalPurpose === 'editor') {
+            setScreen('my-levels');
+        }
     };
 
+    // Updated: Check username requirement only for My Levels (editor)
     const handleOpenMyLevels = useCallback(async () => {
-        if (!user) {
-            await signIn();
-        }
+        await ensureSignedIn();
 
         if (!username) {
+            setUsernameModalPurpose('editor');
             setShowUsernameModal(true);
             return;
         }
 
         setScreen('my-levels');
-    }, [user, username, signIn]);
+    }, [username, ensureSignedIn]);
 
     const handleCreateNewLevel = () => {
         setEditingLevel(null);
@@ -159,7 +156,6 @@ export default function Target2048App() {
         }
     };
 
-    // FIX: Use returnToScreen instead of hardcoding 'my-levels'
     const handleLevelVerified = () => {
         setScreen(returnToScreen);
         setTestingLevel(null);

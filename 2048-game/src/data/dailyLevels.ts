@@ -280,15 +280,15 @@ export const DAILY_LEVELS: Level[] = [
     },
     {
         id: 'daily-21',
-        target: 1024,
-        name: "The Gauntlet",
-        description: "Everything at once!",
+        target: 128,
+        name: "F-1-7",
+        description: "Merge to win.",
         par: 25,
         grid: [
-            [L(512), 'W', S(0), G(2)],
-            ['W', L(256), 0, 'W'],
-            [S(0), 0, L(128), S(0)],
-            [2, 'W', 0, L(64)]
+            [4, 4, 16, 16],
+            [4, 8, 8, 16],
+            [4, 4, 8, 16],
+            [4, 8, 8, 8]
         ]
     },
 

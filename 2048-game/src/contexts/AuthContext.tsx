@@ -1,3 +1,4 @@
+// src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, db } from '../config/firebase';
 import { signInAnonymously, onAuthStateChanged, type User } from 'firebase/auth';
@@ -8,7 +9,7 @@ interface AuthContextType {
     username: string | null;
     loading: boolean;
     setUsername: (name: string) => Promise<void>;
-    signIn: () => Promise<void>;
+    ensureSignedIn: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,18 +27,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [username, setUsernameState] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Auto sign-in on first load
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-            setUser(firebaseUser);
-
             if (firebaseUser) {
-                // Load username from Firestore
+                // User exists
+                setUser(firebaseUser);
+
+                // Try to load username from Firestore
                 const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
                 if (userDoc.exists()) {
-                    setUsernameState(userDoc.data().username);
+                    setUsernameState(userDoc.data().username || null);
                 }
             } else {
-                setUsernameState(null);
+                // No user - auto sign in anonymously
+                try {
+                    await signInAnonymously(auth);
+                    // The auth state change will trigger again with the new user
+                } catch (error) {
+                    console.error('Auto sign-in failed:', error);
+                }
             }
 
             setLoading(false);
@@ -46,12 +55,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return unsubscribe;
     }, []);
 
-    const signIn = async () => {
-        try {
-            await signInAnonymously(auth);
-        } catch (error) {
-            console.error('Sign in error:', error);
-            throw error;
+    const ensureSignedIn = async () => {
+        if (!user) {
+            try {
+                await signInAnonymously(auth);
+            } catch (error) {
+                console.error('Sign in error:', error);
+                throw error;
+            }
         }
     };
 
@@ -63,13 +74,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             username: name,
             createdAt: new Date().toISOString(),
             lastSeen: new Date().toISOString()
-        });
+        }, { merge: true });
 
         setUsernameState(name);
     };
 
     return (
-        <AuthContext.Provider value={{ user, username, loading, setUsername, signIn }}>
+        <AuthContext.Provider value={{ user, username, loading, setUsername, ensureSignedIn }}>
             {children}
         </AuthContext.Provider>
     );
