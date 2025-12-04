@@ -14,7 +14,7 @@ interface MyLevelsViewProps {
 }
 
 const MyLevelsView: React.FC<MyLevelsViewProps> = ({ onBack, onCreateNew, onEdit, onPlay }) => {
-    const { username } = useAuth();
+    const { userId } = useAuth();
     const [levels, setLevels] = useState<CustomLevel[]>([]);
     const [deleteConfirm, setDeleteConfirm] = useState<string | number | null>(null);
     const [sharingLevel, setSharingLevel] = useState<string | number | null>(null);
@@ -23,11 +23,11 @@ const MyLevelsView: React.FC<MyLevelsViewProps> = ({ onBack, onCreateNew, onEdit
 
     useEffect(() => {
         loadLevels();
-    }, [username]);
+    }, [userId]);
 
     const loadLevels = () => {
-        if (username) {
-            const userLevels = getUserLevels(username);
+        if (userId) {
+            const userLevels = getUserLevels(userId);
             // Sort by newest first
             setLevels(userLevels.reverse());
         }

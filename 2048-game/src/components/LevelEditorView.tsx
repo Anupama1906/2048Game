@@ -17,7 +17,7 @@ interface LevelEditorViewProps {
 }
 
 const LevelEditorView: React.FC<LevelEditorViewProps> = ({ existingLevel, onBack, onPlayTest }) => {
-    const { username } = useAuth();
+    const { userId } = useAuth();
     const [mode, setMode] = useState<EditorMode>('edit');
     const [selectedTool, setSelectedTool] = useState<EditorTool>(EMPTY_TOOL);
     const [grid, setGrid] = useState<Grid>(createEmptyGrid(4));
@@ -136,15 +136,15 @@ const LevelEditorView: React.FC<LevelEditorViewProps> = ({ existingLevel, onBack
     };
 
     const handleSave = () => {
-        if (!username) return;
+        if (!userId) return;
         const level: CustomLevel = {
-            id: existingLevel?.id || generateLevelId(username),
+            id: existingLevel?.id || generateLevelId(userId),
             name: levelName,
             description: levelDescription,
             target: targetValue,
             grid: grid as any,
             section: 'Custom',
-            createdBy: username,
+            createdBy: userId,
             createdAt: existingLevel?.createdAt || new Date().toISOString(),
             lastModified: new Date().toISOString(),
             isVerified: existingLevel?.isVerified || false,
@@ -156,15 +156,15 @@ const LevelEditorView: React.FC<LevelEditorViewProps> = ({ existingLevel, onBack
     };
 
     const handlePlayTest = () => {
-        if (!username) return;
+        if (!userId) return;
         const level: CustomLevel = {
-            id: existingLevel?.id || generateLevelId(username),
+            id: existingLevel?.id || generateLevelId(userId),
             name: levelName,
             description: levelDescription,
             target: targetValue,
             grid: grid as any,
             section: 'Custom',
-            createdBy: username,
+            createdBy: userId,
             createdAt: existingLevel?.createdAt || new Date().toISOString(),
             lastModified: new Date().toISOString(),
             isVerified: false,

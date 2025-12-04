@@ -185,7 +185,7 @@ const LOCKS = createSection("Locks", [
     },
 
     {
-        id: 'lock-2',
+        id: 'lock-3',
         target: 2048,
         name: "Unlocker",
         description: "Merging locked tiles stops movement. Use it to your advantage.",
@@ -198,7 +198,7 @@ const LOCKS = createSection("Locks", [
         ]
     },
     {
-        id: 'lock-3',
+        id: 'lock-4',
         target: 16,
         name: "Lockpick",
         description: "Locked cells can trap tiles. Use merging to free them.",

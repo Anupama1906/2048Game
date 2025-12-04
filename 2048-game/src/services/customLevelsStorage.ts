@@ -4,13 +4,13 @@ import type { CustomLevel } from '../types/editorTypes';
 const STORAGE_KEY = 'target2048_custom_levels';
 
 // Get all custom levels for a user
-export const getUserLevels = (username: string): CustomLevel[] => {
+export const getUserLevels = (userId: string): CustomLevel[] => {
   const data = localStorage.getItem(STORAGE_KEY);
   if (!data) return [];
-  
+
   try {
     const allLevels: CustomLevel[] = JSON.parse(data);
-    return allLevels.filter(level => level.createdBy === username);
+    return allLevels.filter(level => level.createdBy === userId);
   } catch (e) {
     console.error('Failed to load custom levels:', e);
     return [];
@@ -73,6 +73,6 @@ export const getLevel = (levelId: string | number): CustomLevel | null => {
 };
 
 // Generate unique ID for new levels
-export const generateLevelId = (username: string): string => {
-  return `custom-${username}-${Date.now()}`;
+export const generateLevelId = (userId: string): string => {
+  return `custom-${userId}-${Date.now()}`;
 };

@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 interface AuthContextType {
     user: User | null;
+    userId: string | null;
     username: string | null;
     loading: boolean;
     setUsername: (name: string) => Promise<void>;
@@ -80,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, username, loading, setUsername, ensureSignedIn }}>
+        <AuthContext.Provider value={{ user, userId: user?.uid || null, username, loading, setUsername, ensureSignedIn }}>
             {children}
         </AuthContext.Provider>
     );

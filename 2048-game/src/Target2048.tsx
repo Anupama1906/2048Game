@@ -26,7 +26,6 @@ export default function Target2048App() {
     const [testingLevel, setTestingLevel] = useState<CustomLevel | null>(null);
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [showUsernameModal, setShowUsernameModal] = useState(false);
-    const [usernameModalPurpose, setUsernameModalPurpose] = useState<'daily' | 'editor'>('daily');
 
     const [communityTab, setCommunityTab] = useState<CommunityTab>('played');
     const [returnToScreen, setReturnToScreen] = useState<ExtendedAppScreen>('my-levels');
@@ -98,25 +97,13 @@ export default function Target2048App() {
 
     const handleUsernameSet = () => {
         setShowUsernameModal(false);
-
-        // Continue with the action that required username
-        if (usernameModalPurpose === 'editor') {
-            setScreen('my-levels');
-        }
     };
 
-    // Updated: Check username requirement only for My Levels (editor)
+    // Updated: Username is optional - users can create levels with just their user ID
     const handleOpenMyLevels = useCallback(async () => {
         await ensureSignedIn();
-
-        if (!username) {
-            setUsernameModalPurpose('editor');
-            setShowUsernameModal(true);
-            return;
-        }
-
         setScreen('my-levels');
-    }, [username, ensureSignedIn]);
+    }, [ensureSignedIn]);
 
     const handleCreateNewLevel = () => {
         setEditingLevel(null);
