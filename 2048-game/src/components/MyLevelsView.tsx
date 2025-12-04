@@ -1,10 +1,12 @@
 // src/components/MyLevelsView.tsx
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Plus, Edit2, Trash2, Play, Calendar, CheckCircle2, XCircle, Target, Share2, Copy, Check } from 'lucide-react';
+import { Edit2, Plus, Copy, Check, Share2, CheckCircle2 } from 'lucide-react';
 import type { CustomLevel } from '../types/editorTypes';
 import { getUserLevels, deleteLevel } from '../services/customLevelsStorage';
 import { shareLevel } from '../services/sharedLevelsService';
 import { useAuth } from '../contexts/AuthContext';
+import { ViewHeader } from './shared/ViewHeader';
+import { LevelCard } from './shared/LevelCard';
 
 interface MyLevelsViewProps {
     onBack: () => void;
@@ -28,46 +30,29 @@ const MyLevelsView: React.FC<MyLevelsViewProps> = ({ onBack, onCreateNew, onEdit
     const loadLevels = () => {
         if (userId) {
             const userLevels = getUserLevels(userId);
-            // Sort by newest first
             setLevels(userLevels.reverse());
         }
     };
 
-    const handleDelete = (levelId: string | number) => {
-        deleteLevel(levelId);
-        loadLevels();
-        setDeleteConfirm(null);
-    };
-
-    const formatDate = (isoString: string) => {
-        const date = new Date(isoString);
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    };
-
-    // Helper to get a color roughly matching the game tiles based on target
-    const getTargetColor = (target: number) => {
-        if (target >= 2048) return 'bg-yellow-500 text-white';
-        if (target >= 128) return 'bg-yellow-400 text-white';
-        if (target >= 8) return 'bg-orange-500 text-white';
-        return 'bg-orange-200 text-slate-800';
+    const handleDelete = (level: CustomLevel) => {
+        if (deleteConfirm === level.id) {
+            deleteLevel(level.id);
+            loadLevels();
+            setDeleteConfirm(null);
+        } else {
+            setDeleteConfirm(level.id);
+        }
     };
 
     const handleShare = async (level: CustomLevel) => {
-        if (!level.isVerified) {
-            alert('Only verified levels can be shared. Play and win the level first!');
-            return;
-        }
-
         setSharingLevel(level.id);
         setShareCode(null);
         setCopied(false);
-
         try {
             const code = await shareLevel(level);
             setShareCode(code);
         } catch (error: any) {
-            console.error('Failed to share level:', error);
-            alert(error.message || 'Failed to share level. Please try again.');
+            alert(error.message || 'Failed to share level.');
             setSharingLevel(null);
         }
     };
@@ -80,157 +65,47 @@ const MyLevelsView: React.FC<MyLevelsViewProps> = ({ onBack, onCreateNew, onEdit
         }
     };
 
-    const handleCloseShare = () => {
-        setSharingLevel(null);
-        setShareCode(null);
-        setCopied(false);
-    };
-
     return (
         <div className="flex flex-col h-full w-full max-w-5xl mx-auto px-5 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8 pt-6 sticky top-0 z-10 bg-gradient-to-b from-slate-50 via-slate-50/95 to-transparent dark:from-slate-950 dark:via-slate-950/95 dark:to-transparent pb-4">
-                <button
-                    onClick={onBack}
-                    className="flex items-center gap-2 px-4 py-2 hover:bg-white dark:hover:bg-slate-800 rounded-xl transition-all shadow-sm hover:shadow text-slate-600 dark:text-slate-300 font-bold active:scale-95"
-                >
-                    <ChevronRight className="rotate-180" size={20} />
-                    <span>Back</span>
-                </button>
+            <ViewHeader
+                onBack={onBack}
+                title="My Levels"
+                subtitle={`${levels.length} Created`}
+                icon={Edit2}
+                iconColor="text-purple-600 dark:text-purple-400"
+            />
 
-                <div className="flex items-center gap-3">
-                    <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg">
-                        <Edit2 size={24} className="text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <div>
-                        <h2 className="text-2xl font-black text-slate-800 dark:text-white leading-none">
-                            My Levels
-                        </h2>
-                        <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1">
-                            {levels.length} Created
-                        </p>
-                    </div>
-                </div>
-
-                <div className="w-24" /> {/* Spacer for visual balance */}
-            </div>
-
-            {/* Content Grid */}
             <div className="flex-1 overflow-y-auto pb-12 custom-scrollbar">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
-                    {/* 1. Create New Card */}
+                    {/* Create New Card */}
                     <button
                         onClick={onCreateNew}
-                        className="group relative flex flex-col items-center justify-center min-h-[220px] rounded-3xl border-3 border-dashed border-purple-300 dark:border-purple-700 hover:border-purple-500 dark:hover:border-purple-500 bg-purple-50/50 dark:bg-purple-900/10 hover:bg-purple-100 dark:hover:bg-purple-900/20 transition-all duration-300 active:scale-95"
+                        className="group flex flex-col items-center justify-center min-h-[220px] rounded-3xl border-3 border-dashed border-purple-300 dark:border-purple-700 hover:border-purple-500 bg-purple-50/50 dark:bg-purple-900/10 hover:bg-purple-100 transition-all duration-300 active:scale-95"
                     >
                         <div className="w-16 h-16 rounded-2xl bg-white dark:bg-slate-800 shadow-md group-hover:shadow-xl group-hover:-translate-y-2 transition-all duration-300 flex items-center justify-center mb-4">
                             <Plus size={32} className="text-purple-500" />
                         </div>
                         <span className="text-lg font-bold text-purple-700 dark:text-purple-300">Create New Level</span>
-                        <span className="text-sm text-purple-400 dark:text-purple-500 font-medium mt-1">Design your own puzzle</span>
                     </button>
 
-                    {/* 2. Level List */}
+                    {/* Level List */}
                     {levels.map((level) => (
-                        <div
+                        <LevelCard
                             key={level.id}
-                            className="group relative bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-slate-100 dark:border-slate-700"
-                        >
-                            {/* Top Row: Icon & Status */}
-                            <div className="flex justify-between items-start mb-4">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg shadow-inner ${getTargetColor(level.target)}`}>
-                                    {level.target}
-                                </div>
-                                {level.isVerified ? (
-                                    <div className="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-lg text-xs font-bold">
-                                        <CheckCircle2 size={14} /> Verified
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-2.5 py-1 rounded-lg text-xs font-bold">
-                                        <XCircle size={14} /> Draft
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Info */}
-                            <div className="mb-4">
-                                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                                    {level.name}
-                                </h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 min-h-[2.5em]">
-                                    {level.description || "No description provided."}
-                                </p>
-                            </div>
-
-                            {/* Meta Data */}
-                            <div className="flex items-center gap-4 mb-5 text-xs font-medium text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-700 pt-3">
-                                <div className="flex items-center gap-1.5">
-                                    <Calendar size={14} />
-                                    {formatDate(level.createdAt)}
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <Target size={14} />
-                                    Goal: {level.target}
-                                </div>
-                            </div>
-
-                            {/* Actions Bar */}
-                            {deleteConfirm === level.id ? (
-                                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
-                                    <button
-                                        onClick={() => handleDelete(level.id)}
-                                        className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm transition shadow-lg shadow-red-500/30"
-                                    >
-                                        Confirm Delete
-                                    </button>
-                                    <button
-                                        onClick={() => setDeleteConfirm(null)}
-                                        className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition"
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => onPlay(level)}
-                                        className="flex-1 py-2.5 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition"
-                                    >
-                                        <Play size={16} className="fill-current" />
-                                        {level.isVerified ? 'Play' : 'Test'}
-                                    </button>
-                                    {level.isVerified && (
-                                        <button
-                                            onClick={() => handleShare(level)}
-                                            className="p-2.5 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40 text-green-600 dark:text-green-400 rounded-xl transition border border-green-200 dark:border-green-800"
-                                            title="Share Level"
-                                        >
-                                            <Share2 size={18} />
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={() => onEdit(level)}
-                                        className="p-2.5 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl transition border border-slate-200 dark:border-slate-600"
-                                        title="Edit Level"
-                                    >
-                                        <Edit2 size={18} />
-                                    </button>
-                                    <button
-                                        onClick={() => setDeleteConfirm(level.id)}
-                                        className="p-2.5 bg-slate-50 dark:bg-slate-700/50 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 rounded-xl transition border border-slate-200 dark:border-slate-600 hover:border-red-200 dark:hover:border-red-800"
-                                        title="Delete Level"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                            level={level}
+                            variant="owner"
+                            onPlay={onPlay}
+                            onEdit={onEdit}
+                            onDelete={() => handleDelete(level)} // Trigger delete logic
+                            onShare={handleShare}
+                            confirmDeleteId={deleteConfirm}
+                            onCancelDelete={() => setDeleteConfirm(null)}
+                        />
                     ))}
                 </div>
             </div>
 
-            {/* Share Modal */}
+            {/* Share Modal (Inline for now, could use generic Modal) */}
             {sharingLevel && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 animate-in zoom-in duration-200">
@@ -241,66 +116,23 @@ const MyLevelsView: React.FC<MyLevelsViewProps> = ({ onBack, onCreateNew, onEdit
                                         <CheckCircle2 size={28} className="text-green-600 dark:text-green-400" />
                                     </div>
                                     <div>
-                                        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
-                                            Level Shared!
-                                        </h2>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                                            Share this code with others
-                                        </p>
+                                        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Level Shared!</h2>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">Share this code with others</p>
                                     </div>
                                 </div>
-
                                 <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-6 rounded-xl border-2 border-indigo-200 dark:border-indigo-800 mb-6">
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2 text-center uppercase tracking-wider font-bold">
-                                        Share Code
-                                    </p>
-                                    <div className="text-4xl font-black text-center tracking-widest text-indigo-600 dark:text-indigo-400 mb-4">
-                                        {shareCode}
-                                    </div>
-                                    <button
-                                        onClick={handleCopyCode}
-                                        className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition transform hover:scale-[1.02] active:scale-95"
-                                    >
-                                        {copied ? (
-                                            <>
-                                                <Check size={20} />
-                                                Copied!
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Copy size={20} />
-                                                Copy Code
-                                            </>
-                                        )}
+                                    <div className="text-4xl font-black text-center tracking-widest text-indigo-600 dark:text-indigo-400 mb-4">{shareCode}</div>
+                                    <button onClick={handleCopyCode} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition">
+                                        {copied ? <><Check size={20} /> Copied!</> : <><Copy size={20} /> Copy Code</>}
                                     </button>
                                 </div>
-
-                                <button
-                                    onClick={handleCloseShare}
-                                    className="w-full py-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-white rounded-xl font-bold transition"
-                                >
-                                    Done
-                                </button>
+                                <button onClick={() => { setSharingLevel(null); setShareCode(null); }} className="w-full py-3 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl font-bold">Done</button>
                             </>
                         ) : (
-                            <>
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl">
-                                        <Share2 size={28} className="text-indigo-600 dark:text-indigo-400" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
-                                            Sharing Level...
-                                        </h2>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                                            Generating unique code
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center justify-center py-12">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent" />
-                                </div>
-                            </>
+                            <div className="flex flex-col items-center justify-center py-8">
+                                <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent mb-4" />
+                                <p className="text-slate-500">Generating code...</p>
+                            </div>
                         )}
                     </div>
                 </div>

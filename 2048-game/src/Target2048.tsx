@@ -72,21 +72,28 @@ export default function Target2048App() {
     }, [currentLevel]);
 
     const handleNextLevel = useCallback(() => {
-        if (currentLevel) {
-            if (currentLevel.section === "Daily") {
-                setScreen('menu');
-            } else {
-                const currentIndex = INITIAL_LEVELS.findIndex(l => l.id === currentLevel.id);
-                if (currentIndex !== -1 && currentIndex < INITIAL_LEVELS.length - 1) {
-                    setCurrentLevel(INITIAL_LEVELS[currentIndex + 1]);
-                } else {
-                    setScreen('level-select');
-                }
-            }
+    if (currentLevel) {
+        // 1. Handle Daily Levels
+        if (currentLevel.section === "Daily") {
+            setScreen('menu');
+            return;
+        } 
+        // 2. Handle Custom/Community Levels
+        if (currentLevel.section === 'Custom') {
+            setScreen(returnToScreen); 
+            return;
+        }
+        const currentIndex = INITIAL_LEVELS.findIndex(l => l.id === currentLevel.id);
+        if (currentIndex !== -1 && currentIndex < INITIAL_LEVELS.length - 1) {
+            setCurrentLevel(INITIAL_LEVELS[currentIndex + 1]);
         } else {
             setScreen('level-select');
         }
-    }, [currentLevel]);
+    } else {
+        setScreen('level-select');
+    }
+}, [currentLevel, returnToScreen]);
+
 
     const handleBackToMenu = useCallback(() => {
         setScreen('menu');
