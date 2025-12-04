@@ -28,7 +28,7 @@ export default function Target2048App() {
     const [showUsernameModal, setShowUsernameModal] = useState(false);
     const [usernameModalPurpose, setUsernameModalPurpose] = useState<'daily' | 'editor'>('daily');
 
-    const [communityTab, setCommunityTab] = useState<CommunityTab>('recent');
+    const [communityTab, setCommunityTab] = useState<CommunityTab>('played');
     const [returnToScreen, setReturnToScreen] = useState<ExtendedAppScreen>('my-levels');
 
     const { user, username, loading: authLoading, ensureSignedIn } = useAuth();

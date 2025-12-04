@@ -1,10 +1,11 @@
 // src/components/CommunityLevelsView.tsx
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Search, Clock, Play, User, Target, AlertCircle } from 'lucide-react';
+import { ChevronRight, Search, Clock, Play, User, Target, AlertCircle, History } from 'lucide-react'; // Added History icon
 import type { CustomLevel } from '../types/editorTypes';
-import { loadSharedLevel, getRecentLevels, incrementPlayCount } from '../services/sharedLevelsService';
+import { loadSharedLevel, getRecentlyPlayedLevels, incrementPlayCount, saveRecentlyPlayed } from '../services/sharedLevelsService';
 
-export type CommunityTab = 'code' | 'recent';
+// Changed 'recent' to 'played'
+export type CommunityTab = 'code' | 'played';
 
 interface CommunityLevelsViewProps {
     onBack: () => void;
@@ -14,25 +15,25 @@ interface CommunityLevelsViewProps {
 }
 
 const CommunityLevelsView: React.FC<CommunityLevelsViewProps> = ({ onBack, onPlay, activeTab, onTabChange }) => {
-    // State is now managed by parent
     const [shareCode, setShareCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [recentLevels, setRecentLevels] = useState<CustomLevel[]>([]);
+    const [playedLevels, setPlayedLevels] = useState<CustomLevel[]>([]); // Renamed from recentLevels
 
     useEffect(() => {
-        if (activeTab === 'recent') {
-            loadRecentLevels();
+        if (activeTab === 'played') {
+            loadPlayedLevels();
         }
     }, [activeTab]);
 
-    const loadRecentLevels = async () => {
+    const loadPlayedLevels = async () => {
         setLoading(true);
         try {
-            const levels = await getRecentLevels(10);
-            setRecentLevels(levels);
+            // Changed to use getRecentlyPlayedLevels
+            const levels = await getRecentlyPlayedLevels();
+            setPlayedLevels(levels);
         } catch (err) {
-            console.error('Failed to load recent levels:', err);
+            console.error('Failed to load played levels:', err);
         } finally {
             setLoading(false);
         }
@@ -55,10 +56,10 @@ const CommunityLevelsView: React.FC<CommunityLevelsViewProps> = ({ onBack, onPla
                 return;
             }
 
-            // Increment play count
+            // Increment play count & Save to history
             await incrementPlayCount(shareCode.toUpperCase().trim());
+            saveRecentlyPlayed(level);
             
-            // Play the level
             onPlay(level);
         } catch (err) {
             console.error('Failed to load level:', err);
@@ -71,6 +72,7 @@ const CommunityLevelsView: React.FC<CommunityLevelsViewProps> = ({ onBack, onPla
     const handlePlayLevel = async (level: CustomLevel) => {
         if (level.shareCode) {
             await incrementPlayCount(level.shareCode);
+            saveRecentlyPlayed(level); // Save to history
         }
         onPlay(level);
     };
@@ -93,10 +95,10 @@ const CommunityLevelsView: React.FC<CommunityLevelsViewProps> = ({ onBack, onPla
                     </div>
                     <div>
                         <h2 className="text-2xl font-black text-slate-800 dark:text-white leading-none">
-                            Community Levels
+                            Community
                         </h2>
                         <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1">
-                            Play Levels by Others
+                            Play & Discover
                         </p>
                     </div>
                 </div>
@@ -118,15 +120,15 @@ const CommunityLevelsView: React.FC<CommunityLevelsViewProps> = ({ onBack, onPla
                     Enter Code
                 </button>
                 <button
-                    onClick={() => onTabChange('recent')}
+                    onClick={() => onTabChange('played')}
                     className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition ${
-                        activeTab === 'recent'
+                        activeTab === 'played'
                             ? 'bg-indigo-600 text-white shadow-lg'
                             : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                     }`}
                 >
-                    <Clock size={16} className="inline mr-2" />
-                    Recent
+                    <History size={16} className="inline mr-2" />
+                    Recently Played
                 </button>
             </div>
 
@@ -179,20 +181,20 @@ const CommunityLevelsView: React.FC<CommunityLevelsViewProps> = ({ onBack, onPla
                     </div>
                 )}
 
-                {activeTab === 'recent' && (
+                {activeTab === 'played' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {loading ? (
                             <div className="col-span-full flex items-center justify-center py-20">
                                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent" />
                             </div>
-                        ) : recentLevels.length === 0 ? (
+                        ) : playedLevels.length === 0 ? (
                             <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-500">
-                                <Search size={48} className="mb-4 opacity-50" />
-                                <p className="text-lg font-medium">No levels found</p>
-                                <p className="text-sm">Be the first to share a level!</p>
+                                <History size={48} className="mb-4 opacity-50" />
+                                <p className="text-lg font-medium">No history</p>
+                                <p className="text-sm">Levels you play will appear here.</p>
                             </div>
                         ) : (
-                            recentLevels.map((level) => (
+                            playedLevels.map((level) => (
                                 <div
                                     key={level.shareCode || level.id}
                                     className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-slate-100 dark:border-slate-700"
@@ -236,7 +238,7 @@ const CommunityLevelsView: React.FC<CommunityLevelsViewProps> = ({ onBack, onPla
                                         className="w-full py-2.5 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition"
                                     >
                                         <Play size={16} className="fill-current" />
-                                        Play Level
+                                        Play Again
                                     </button>
                                 </div>
                             ))

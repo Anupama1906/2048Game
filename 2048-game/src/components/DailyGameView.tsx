@@ -1,11 +1,11 @@
 // src/components/DailyGameView.tsx
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { RotateCcw, ChevronRight, Trophy, RefreshCw, Clock, Award, User } from 'lucide-react';
+import { RotateCcw, ChevronRight, Trophy, RefreshCw, Clock, Award, User, Lock } from 'lucide-react';
 import type { Level } from '../types/types';
 import { useGame } from '../hooks/usegame';
 import Tile from './Tile';
 import { useAuth } from '../contexts/AuthContext';
-import { submitDailyScore, formatTime } from '../services/leaderboardService';
+import { submitDailyScore, formatTime, hasUserSubmitted } from '../services/leaderboardService';
 import LeaderboardModal from './LeaderboardModal';
 import UsernameModal from './UsernameModal';
 
@@ -24,7 +24,8 @@ const DailyGameView: React.FC<DailyGameViewProps> = ({ level, onBack }) => {
     const timerRef = useRef<number | null>(null);
 
     // Submission state
-    const [hasSubmitted, setHasSubmitted] = useState(false);
+    const [hasSubmitted, setHasSubmitted] = useState(false); // Current session submission
+    const [alreadySubmitted, setAlreadySubmitted] = useState(false); // Previous session check
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showLeaderboard, setShowLeaderboard] = useState(false);
     const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
@@ -48,6 +49,17 @@ const DailyGameView: React.FC<DailyGameViewProps> = ({ level, onBack }) => {
         gapClass = 'gap-2';
         gapRem = 0.5;
     }
+
+    // Check if user has already submitted a score for this daily level
+    useEffect(() => {
+        const checkSubmission = async () => {
+            if (user && level.id) {
+                const submitted = await hasUserSubmitted(user.uid, level.id.toString());
+                setAlreadySubmitted(submitted);
+            }
+        };
+        checkSubmission();
+    }, [user, level.id]);
 
     // Start timer on first move
     useEffect(() => {
@@ -79,7 +91,7 @@ const DailyGameView: React.FC<DailyGameViewProps> = ({ level, onBack }) => {
     }, [gameState]);
 
     const handleSubmitScore = async () => {
-        if (!user || hasSubmitted) return;
+        if (!user || hasSubmitted || alreadySubmitted) return;
 
         // Check if username exists
         if (!username) {
@@ -100,11 +112,20 @@ const DailyGameView: React.FC<DailyGameViewProps> = ({ level, onBack }) => {
         }
     };
 
+    // Auto-submit if user has username and hasn't submitted yet
+    useEffect(() => {
+        if (gameState === 'won' && !hasSubmitted && !alreadySubmitted && username && !isSubmitting) {
+            handleSubmitScore();
+        }
+    }, [gameState, hasSubmitted, alreadySubmitted, username]);
+
     const handleUsernameSet = async () => {
         setShowUsernamePrompt(false);
         // Retry submission with new username
         await handleSubmitScore();
     };
+
+    // ... [Rest of move handling logic: throttledMove, key handlers, touch handlers - No changes] ...
 
     const throttledMove = useCallback((direction: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT') => {
         const now = Date.now();
@@ -217,14 +238,37 @@ const DailyGameView: React.FC<DailyGameViewProps> = ({ level, onBack }) => {
                                     {moves} moves in {formatTime(time)}
                                 </p>
 
-                                {hasSubmitted ? (
-                                    <button
-                                        onClick={() => setShowLeaderboard(true)}
-                                        className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105 flex items-center gap-2"
-                                    >
-                                        <Award size={20} />
-                                        View Leaderboard
-                                    </button>
+                                {alreadySubmitted ? (
+                                    <div className="flex flex-col items-center gap-3">
+                                        <div className="bg-orange-100 dark:bg-orange-900/30 px-4 py-2 rounded-lg flex items-center gap-2">
+                                            <Lock size={16} className="text-orange-600 dark:text-orange-400" />
+                                            <p className="text-sm text-orange-700 dark:text-orange-300 font-bold">
+                                                Previous attempt already submitted
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowLeaderboard(true)}
+                                            className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105 flex items-center gap-2"
+                                        >
+                                            <Award size={20} />
+                                            View Leaderboard
+                                        </button>
+                                    </div>
+                                ) : hasSubmitted ? (
+                                    <div className="flex flex-col items-center gap-3">
+                                        <div className="bg-green-100 dark:bg-green-900/30 px-4 py-2 rounded-lg">
+                                            <p className="text-sm text-green-700 dark:text-green-300 font-bold">
+                                                Score Submitted!
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowLeaderboard(true)}
+                                            className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105 flex items-center gap-2"
+                                        >
+                                            <Award size={20} />
+                                            View Leaderboard
+                                        </button>
+                                    </div>
                                 ) : (
                                     <div className="space-y-3">
                                         <button

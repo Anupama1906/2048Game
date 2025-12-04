@@ -72,11 +72,11 @@ const deserializeLevel = (data: any): CustomLevel => {
     } as CustomLevel;
 };
 
-// NEW: Check if this level was previously shared
+// Check if this level was previously shared
 const findExistingSharedLevel = async (levelId: string | number): Promise<string | null> => {
     const levelsRef = collection(db, 'sharedLevels');
     const q = query(levelsRef, where('id', '==', levelId));
-    
+
     try {
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
@@ -85,11 +85,11 @@ const findExistingSharedLevel = async (levelId: string | number): Promise<string
     } catch (error) {
         console.error('Error checking for existing shared level:', error);
     }
-    
+
     return null;
 };
 
-// NEW: Delete old shared version
+// Delete old shared version (Internal helper if needed, currently unused but good to keep)
 const deleteSharedLevel = async (shareCode: string): Promise<void> => {
     try {
         const levelRef = doc(db, 'sharedLevels', shareCode);
@@ -108,9 +108,9 @@ export const shareLevel = async (level: CustomLevel): Promise<string> => {
 
     // Check if this level was already shared before
     const existingShareCode = await findExistingSharedLevel(level.id);
-    
+
     let shareCode: string;
-    
+
     if (existingShareCode) {
         // Re-use the same share code for updates
         shareCode = existingShareCode;
@@ -119,7 +119,7 @@ export const shareLevel = async (level: CustomLevel): Promise<string> => {
         // Generate new unique code
         shareCode = generateShareCode();
         let attempts = 0;
-        
+
         while (attempts < 5) {
             const exists = await checkCodeExists(shareCode);
             if (!exists) break;
@@ -232,4 +232,47 @@ export const getLevelsByCreator = async (username: string): Promise<CustomLevel[
 
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => deserializeLevel(doc.data()));
+};
+
+// --- NEW: Recently Played Local Storage Logic ---
+const RECENTLY_PLAYED_KEY = 'target2048_recently_played';
+
+export const saveRecentlyPlayed = (level: CustomLevel): void => {
+    if (!level.shareCode) return;
+    try {
+        const stored = localStorage.getItem(RECENTLY_PLAYED_KEY);
+        let codes: string[] = stored ? JSON.parse(stored) : [];
+
+        // Remove if exists (to move to top)
+        codes = codes.filter(c => c !== level.shareCode);
+
+        // Add to front
+        codes.unshift(level.shareCode);
+
+        // Limit to 20
+        if (codes.length > 20) codes = codes.slice(0, 20);
+
+        localStorage.setItem(RECENTLY_PLAYED_KEY, JSON.stringify(codes));
+    } catch (e) {
+        console.error('Failed to save recently played:', e);
+    }
+};
+
+export const getRecentlyPlayedLevels = async (): Promise<CustomLevel[]> => {
+    try {
+        const stored = localStorage.getItem(RECENTLY_PLAYED_KEY);
+        const codes: string[] = stored ? JSON.parse(stored) : [];
+
+        if (codes.length === 0) return [];
+
+        // Fetch all levels in parallel
+        const promises = codes.map(code => loadSharedLevel(code));
+        const results = await Promise.all(promises);
+
+        // Filter out any nulls (deleted levels)
+        return results.filter((l): l is CustomLevel => l !== null);
+    } catch (e) {
+        console.error('Failed to load recently played levels:', e);
+        return [];
+    }
 };
