@@ -1,16 +1,17 @@
 // src/components/MainMenuView.tsx
 import React from 'react';
-import { Grid as GridIcon, Moon, Sun, Plus, Calendar } from 'lucide-react';
+import { Grid as GridIcon, Moon, Sun, Plus, Calendar, Users } from 'lucide-react';
 
 interface MainMenuViewProps {
     onPlay: () => void;
     onCreate: () => void;
     onDaily: () => void;
+    onCommunity: () => void;
     isDarkMode: boolean;
     toggleDarkMode: () => void;
 }
 
-const MainMenuView: React.FC<MainMenuViewProps> = ({ onPlay, onCreate, onDaily, isDarkMode, toggleDarkMode }) => {
+const MainMenuView: React.FC<MainMenuViewProps> = ({ onPlay, onCreate, onDaily, onCommunity, isDarkMode, toggleDarkMode }) => {
     return (
         <div className="flex flex-col items-center justify-center h-full w-full px-6 sm:px-6 lg:px-8 relative bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
             {/* Theme Toggle Button */}
@@ -46,7 +47,15 @@ const MainMenuView: React.FC<MainMenuViewProps> = ({ onPlay, onCreate, onDaily, 
                     <Calendar size={24} className="text-orange-500" /> Daily Puzzle
                 </button>
 
-                {/* 3. Create Level Button (UPDATED - Now enabled) */}
+                {/* 3. Community Levels Button */}
+                <button
+                    onClick={onCommunity}
+                    className="w-full py-3.5 sm:py-5 bg-white dark:bg-slate-800 text-slate-800 dark:text-white rounded-2xl font-bold border-2 border-indigo-200 dark:border-indigo-900/50 hover:border-indigo-400 dark:hover:border-indigo-700 shadow-sm hover:shadow-md flex items-center justify-center gap-3 text-base sm:text-lg transition-all transform hover:scale-[1.02] active:scale-95 duration-200"
+                >
+                    <Users size={24} className="text-indigo-500" /> Community Levels
+                </button>
+
+                {/* 4. Create Level Button */}
                 <button
                     onClick={onCreate}
                     className="w-full py-3.5 sm:py-5 bg-white dark:bg-slate-800 text-slate-800 dark:text-white rounded-2xl font-bold border-2 border-purple-200 dark:border-purple-900/50 hover:border-purple-400 dark:hover:border-purple-700 shadow-sm hover:shadow-md flex items-center justify-center gap-3 text-base sm:text-lg transition-all transform hover:scale-[1.02] active:scale-95 duration-200"

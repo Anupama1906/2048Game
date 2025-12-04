@@ -1,8 +1,9 @@
 // src/components/MyLevelsView.tsx
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Plus, Edit2, Trash2, Play, Calendar, CheckCircle2, XCircle, Target, Trophy } from 'lucide-react';
+import { ChevronRight, Plus, Edit2, Trash2, Play, Calendar, CheckCircle2, XCircle, Target, Share2, Copy, Check } from 'lucide-react';
 import type { CustomLevel } from '../types/editorTypes';
 import { getUserLevels, deleteLevel } from '../services/customLevelsStorage';
+import { shareLevel } from '../services/sharedLevelsService';
 import { useAuth } from '../contexts/AuthContext';
 
 interface MyLevelsViewProps {
@@ -16,6 +17,9 @@ const MyLevelsView: React.FC<MyLevelsViewProps> = ({ onBack, onCreateNew, onEdit
     const { username } = useAuth();
     const [levels, setLevels] = useState<CustomLevel[]>([]);
     const [deleteConfirm, setDeleteConfirm] = useState<string | number | null>(null);
+    const [sharingLevel, setSharingLevel] = useState<string | number | null>(null);
+    const [shareCode, setShareCode] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         loadLevels();
@@ -46,6 +50,40 @@ const MyLevelsView: React.FC<MyLevelsViewProps> = ({ onBack, onCreateNew, onEdit
         if (target >= 128) return 'bg-yellow-400 text-white';
         if (target >= 8) return 'bg-orange-500 text-white';
         return 'bg-orange-200 text-slate-800';
+    };
+
+    const handleShare = async (level: CustomLevel) => {
+        if (!level.isVerified) {
+            alert('Only verified levels can be shared. Play and win the level first!');
+            return;
+        }
+
+        setSharingLevel(level.id);
+        setShareCode(null);
+        setCopied(false);
+
+        try {
+            const code = await shareLevel(level);
+            setShareCode(code);
+        } catch (error: any) {
+            console.error('Failed to share level:', error);
+            alert(error.message || 'Failed to share level. Please try again.');
+            setSharingLevel(null);
+        }
+    };
+
+    const handleCopyCode = () => {
+        if (shareCode) {
+            navigator.clipboard.writeText(shareCode);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
+    };
+
+    const handleCloseShare = () => {
+        setSharingLevel(null);
+        setShareCode(null);
+        setCopied(false);
     };
 
     return (
@@ -162,6 +200,15 @@ const MyLevelsView: React.FC<MyLevelsViewProps> = ({ onBack, onCreateNew, onEdit
                                         <Play size={16} className="fill-current" />
                                         {level.isVerified ? 'Play' : 'Test'}
                                     </button>
+                                    {level.isVerified && (
+                                        <button
+                                            onClick={() => handleShare(level)}
+                                            className="p-2.5 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40 text-green-600 dark:text-green-400 rounded-xl transition border border-green-200 dark:border-green-800"
+                                            title="Share Level"
+                                        >
+                                            <Share2 size={18} />
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => onEdit(level)}
                                         className="p-2.5 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl transition border border-slate-200 dark:border-slate-600"
@@ -182,6 +229,82 @@ const MyLevelsView: React.FC<MyLevelsViewProps> = ({ onBack, onCreateNew, onEdit
                     ))}
                 </div>
             </div>
+
+            {/* Share Modal */}
+            {sharingLevel && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 animate-in zoom-in duration-200">
+                        {shareCode ? (
+                            <>
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
+                                        <CheckCircle2 size={28} className="text-green-600 dark:text-green-400" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
+                                            Level Shared!
+                                        </h2>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                                            Share this code with others
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-6 rounded-xl border-2 border-indigo-200 dark:border-indigo-800 mb-6">
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2 text-center uppercase tracking-wider font-bold">
+                                        Share Code
+                                    </p>
+                                    <div className="text-4xl font-black text-center tracking-widest text-indigo-600 dark:text-indigo-400 mb-4">
+                                        {shareCode}
+                                    </div>
+                                    <button
+                                        onClick={handleCopyCode}
+                                        className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition transform hover:scale-[1.02] active:scale-95"
+                                    >
+                                        {copied ? (
+                                            <>
+                                                <Check size={20} />
+                                                Copied!
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Copy size={20} />
+                                                Copy Code
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+
+                                <button
+                                    onClick={handleCloseShare}
+                                    className="w-full py-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-white rounded-xl font-bold transition"
+                                >
+                                    Done
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl">
+                                        <Share2 size={28} className="text-indigo-600 dark:text-indigo-400" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
+                                            Sharing Level...
+                                        </h2>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                                            Generating unique code
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-center py-12">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent" />
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

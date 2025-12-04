@@ -2,10 +2,14 @@
 import type { Cell, Level } from './types';
 
 export interface CustomLevel extends Level {
-    createdBy: string; // username
-    createdAt: string; // ISO timestamp
+    createdBy: string;
+    createdAt: string;
     lastModified: string;
-    isVerified: boolean; // true if creator has beaten it
+    isVerified: boolean;
+    shareCode?: string;    // NEW
+    sharedAt?: string;     // NEW
+    plays?: number;        // NEW
+    likes?: number;        // NEW
 }
 
 export type EditorMode = 'edit' | 'play';

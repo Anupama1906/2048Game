@@ -9,19 +9,17 @@ import LoadingScreen from './components/LoadingScreen';
 import MyLevelsView from './components/MyLevelsView';
 import LevelEditorView from './components/LevelEditorView';
 import CustomLevelTestView from './components/CustomLevelTestView';
+import CommunityLevelsView from './components/CommunityLevelsView';
 import { INITIAL_LEVELS } from './data/levels';
 import { getDailyLevel } from './utils/daily';
 import { useAuth } from './contexts/AuthContext';
 import GameView from './components/GameView';
 
 const LevelSelectView = lazy(() => import('./components/LevelSelectView'));
-// Removed CreatorView import as per previous cleanup
 
-// ... (Rest of imports and types remain the same)
-type ExtendedAppScreen = AppScreen | 'my-levels' | 'level-editor' | 'test-level';
+type ExtendedAppScreen = AppScreen | 'my-levels' | 'level-editor' | 'test-level' | 'community-levels';
 
 export default function Target2048App() {
-    // ... (State definitions remain the same)
     const [screen, setScreen] = useState<ExtendedAppScreen>('menu');
     const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
     const [editingLevel, setEditingLevel] = useState<CustomLevel | null>(null);
@@ -45,8 +43,6 @@ export default function Target2048App() {
         localStorage.setItem('target2048_theme', JSON.stringify(isDarkMode));
     }, [isDarkMode]);
 
-    // ... (Standard handlers: handleSelectLevel, handlePlayDaily, handlePlayGenerated, handleLevelWon, handleNextLevel remain the same)
-
     const handleSelectLevel = useCallback((level: Level) => {
         setCurrentLevel(level);
         setScreen('game');
@@ -67,7 +63,6 @@ export default function Target2048App() {
         setScreen('game');
     }, [user, username, signIn]);
 
-    // Kept for backward compatibility if needed, or can be removed if CreatorView is fully gone.
     const handlePlayGenerated = useCallback((level: Level) => {
         setCurrentLevel(level);
         setScreen('game');
@@ -114,7 +109,6 @@ export default function Target2048App() {
         handlePlayDaily();
     };
 
-    // Level Editor handlers
     const handleOpenMyLevels = useCallback(async () => {
         if (!user) {
             await signIn();
@@ -149,7 +143,6 @@ export default function Target2048App() {
         setTestingLevel(null);
     };
 
-    // NEW: Handle returning to editor from test mode
     const handleEditFromTest = () => {
         if (testingLevel) {
             setEditingLevel(testingLevel);
@@ -180,8 +173,19 @@ export default function Target2048App() {
                             onPlay={() => setScreen('level-select')}
                             onDaily={handlePlayDaily}
                             onCreate={handleOpenMyLevels}
+                            onCommunity={() => setScreen('community-levels')}
                             isDarkMode={isDarkMode}
                             toggleDarkMode={toggleDarkMode}
+                        />
+                    )}
+
+                    {screen === 'community-levels' && (
+                        <CommunityLevelsView
+                            onBack={handleBackToMenu}
+                            onPlay={(level) => {
+                                setTestingLevel(level);
+                                setScreen('test-level');
+                            }}
                         />
                     )}
 
@@ -206,7 +210,7 @@ export default function Target2048App() {
                         <CustomLevelTestView
                             level={testingLevel}
                             onBack={handleBackToMyLevels}
-                            onEdit={handleEditFromTest} // PASSING NEW PROP
+                            onEdit={handleEditFromTest}
                             onVerified={handleLevelVerified}
                         />
                     )}
@@ -219,7 +223,6 @@ export default function Target2048App() {
                                 bestScores={bestScores}
                             />
                         )}
-
 
                         {screen === 'game' && currentLevel && (
                             <>
