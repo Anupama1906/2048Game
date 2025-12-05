@@ -11,6 +11,12 @@ interface ViewHeaderProps {
     rightContent?: React.ReactNode;
     sticky?: boolean;
 }
+const iconBgClasses: Record<string, string> = {
+    'text-indigo-600 dark:text-indigo-400': 'bg-indigo-100 dark:bg-indigo-900/30',
+    'text-purple-600 dark:text-purple-400': 'bg-purple-100 dark:bg-purple-900/30',
+    'text-orange-600 dark:text-orange-400': 'bg-orange-100 dark:bg-orange-900/30',
+    'text-green-600 dark:text-green-400': 'bg-green-100 dark:bg-green-900/30',
+};
 
 export const ViewHeader: React.FC<ViewHeaderProps> = ({
     onBack,
@@ -34,7 +40,7 @@ export const ViewHeader: React.FC<ViewHeaderProps> = ({
 
             <div className="flex items-center gap-3">
                 {Icon && (
-                    <div className={`bg-${iconColor.split('-')[1]}-100 dark:bg-${iconColor.split('-')[1]}-900/30 p-2 rounded-lg`}>
+                    <div className={`${iconBgClasses[iconColor] || 'bg-slate-100 dark:bg-slate-900/30'} p-2 rounded-lg`}>
                         <Icon size={24} className={iconColor} />
                     </div>
                 )}

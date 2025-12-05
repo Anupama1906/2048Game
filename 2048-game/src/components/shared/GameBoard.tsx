@@ -106,7 +106,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             <div
                 className="relative bg-slate-300 dark:bg-slate-700 p-3 rounded-xl shadow-xl w-full mb-6 touch-none flex flex-col items-center justify-center min-h-[320px]"
                 // Apply the passed touch handlers here
-                {...touchHandlers}
+                {...(touchHandlers || {})}
             >
                 <div
                     className={`grid ${gapClass} w-full relative z-0`}

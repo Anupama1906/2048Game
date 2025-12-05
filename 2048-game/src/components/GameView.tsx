@@ -49,6 +49,7 @@ const GameView: React.FC<GameViewProps> = ({
             onUndo={undo}
             onReset={reset}
             canUndo={canUndo}
+            touchHandlers={touchHandlers}
             headerExtra={
                 <div className="text-right">
                     <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Best</div>
