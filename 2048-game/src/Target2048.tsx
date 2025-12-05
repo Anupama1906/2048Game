@@ -14,6 +14,7 @@ import { INITIAL_LEVELS } from './data/levels';
 import { getDailyLevel } from './utils/daily';
 import { useAuth } from './contexts/AuthContext';
 import GameView from './components/GameView';
+import DevPanel from './components/DevPanel';
 
 const LevelSelectView = lazy(() => import('./components/LevelSelectView'));
 
@@ -51,11 +52,30 @@ export default function Target2048App() {
         setScreen('game');
     }, []);
 
-    // Updated: Just play the daily level without username check
-    const handlePlayDaily = useCallback(async () => {
-        await ensureSignedIn(); // Ensure user has an ID
-        const dailyLevel = getDailyLevel();
-        setCurrentLevel(dailyLevel);
+    // ✅ NEW: Dev-friendly daily play with optional date override
+    const handlePlayDaily = useCallback(async (dateOverride?: string) => {
+        await ensureSignedIn();
+
+        // If date is provided (from DevPanel), create a daily level for that date
+        if (dateOverride && import.meta.env.DEV) {
+            // Parse the date and create a daily level
+            const date = new Date(dateOverride);
+            const dailyLevel = getDailyLevel(); // This will be for "today" normally
+
+            // Override the ID to match the selected date
+            const customDailyLevel: Level = {
+                ...dailyLevel,
+                id: `daily-${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`,
+                name: `Daily: ${dailyLevel.name} (${dateOverride})`
+            };
+
+            setCurrentLevel(customDailyLevel);
+        } else {
+            // Normal daily level
+            const dailyLevel = getDailyLevel();
+            setCurrentLevel(dailyLevel);
+        }
+
         setScreen('game');
     }, [ensureSignedIn]);
 
@@ -72,28 +92,25 @@ export default function Target2048App() {
     }, [currentLevel]);
 
     const handleNextLevel = useCallback(() => {
-    if (currentLevel) {
-        // 1. Handle Daily Levels
-        if (currentLevel.section === "Daily") {
-            setScreen('menu');
-            return;
-        } 
-        // 2. Handle Custom/Community Levels
-        if (currentLevel.section === 'Custom') {
-            setScreen(returnToScreen); 
-            return;
-        }
-        const currentIndex = INITIAL_LEVELS.findIndex(l => l.id === currentLevel.id);
-        if (currentIndex !== -1 && currentIndex < INITIAL_LEVELS.length - 1) {
-            setCurrentLevel(INITIAL_LEVELS[currentIndex + 1]);
+        if (currentLevel) {
+            if (currentLevel.section === "Daily") {
+                setScreen('menu');
+                return;
+            }
+            if (currentLevel.section === 'Custom') {
+                setScreen(returnToScreen);
+                return;
+            }
+            const currentIndex = INITIAL_LEVELS.findIndex(l => l.id === currentLevel.id);
+            if (currentIndex !== -1 && currentIndex < INITIAL_LEVELS.length - 1) {
+                setCurrentLevel(INITIAL_LEVELS[currentIndex + 1]);
+            } else {
+                setScreen('level-select');
+            }
         } else {
             setScreen('level-select');
         }
-    } else {
-        setScreen('level-select');
-    }
-}, [currentLevel, returnToScreen]);
-
+    }, [currentLevel, returnToScreen]);
 
     const handleBackToMenu = useCallback(() => {
         setScreen('menu');
@@ -106,7 +123,6 @@ export default function Target2048App() {
         setShowUsernameModal(false);
     };
 
-    // Updated: Username is optional - users can create levels with just their user ID
     const handleOpenMyLevels = useCallback(async () => {
         await ensureSignedIn();
         setScreen('my-levels');
@@ -170,7 +186,7 @@ export default function Target2048App() {
                     {screen === 'menu' && (
                         <MainMenuView
                             onPlay={() => setScreen('level-select')}
-                            onDaily={handlePlayDaily}
+                            onDaily={() => handlePlayDaily()}
                             onCreate={handleOpenMyLevels}
                             onCommunity={() => setScreen('community-levels')}
                             isDarkMode={isDarkMode}
@@ -246,6 +262,21 @@ export default function Target2048App() {
                         )}
                     </Suspense>
                 </div>
+
+                {/* ✅ NEW: Dev Panel (only shows in development) */}
+                {import.meta.env.DEV && (
+                    <DevPanel
+                        onJumpToLevel={handleSelectLevel}
+                        onPlayDaily={handlePlayDaily}
+                        currentLevel={currentLevel || testingLevel}
+                        onVerifyLevel={() => {
+                            // Trigger a re-render by updating the testingLevel
+                            if (testingLevel) {
+                                setTestingLevel({ ...testingLevel });
+                            }
+                        }}
+                    />
+                )}
             </div>
 
             {showUsernameModal && (
