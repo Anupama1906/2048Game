@@ -1,4 +1,5 @@
 // src/Target2048.tsx
+// ... (imports remain the same)
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import type { AppScreen, Level } from './types/types';
 import type { CustomLevel } from './types/editorTypes';
@@ -7,7 +8,7 @@ import UsernameModal from './components/UsernameModal';
 import DailyGameView from './components/DailyGameView';
 import LoadingScreen from './components/LoadingScreen';
 import MyLevelsView from './components/MyLevelsView';
-import LevelEditorView from './components/LevelEditorView';
+import LevelEditorView from './components/LevelEditor/LevelEditorView';
 import CustomLevelTestView from './components/CustomLevelTestView';
 import CommunityLevelsView, { type CommunityTab } from './components/CommunityLevelsView';
 import { INITIAL_LEVELS } from './data/levels';
@@ -52,30 +53,21 @@ export default function Target2048App() {
         setScreen('game');
     }, []);
 
-    // ✅ NEW: Dev-friendly daily play with optional date override
     const handlePlayDaily = useCallback(async (dateOverride?: string) => {
         await ensureSignedIn();
-
-        // If date is provided (from DevPanel), create a daily level for that date
         if (dateOverride && import.meta.env.DEV) {
-            // Parse the date and create a daily level
             const date = new Date(dateOverride);
-            const dailyLevel = getDailyLevel(); // This will be for "today" normally
-
-            // Override the ID to match the selected date
+            const dailyLevel = getDailyLevel();
             const customDailyLevel: Level = {
                 ...dailyLevel,
                 id: `daily-${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`,
                 name: `Daily: ${dailyLevel.name} (${dateOverride})`
             };
-
             setCurrentLevel(customDailyLevel);
         } else {
-            // Normal daily level
             const dailyLevel = getDailyLevel();
             setCurrentLevel(dailyLevel);
         }
-
         setScreen('game');
     }, [ensureSignedIn]);
 
@@ -135,6 +127,21 @@ export default function Target2048App() {
 
     const handleEditLevel = (level: CustomLevel) => {
         setEditingLevel(level);
+        setScreen('level-editor');
+    };
+
+    // ✅ NEW: Handle Dev Edit Mode
+    const handleDevEditLevel = (level: Level) => {
+        const editableLevel: CustomLevel = {
+            ...level,
+            id: level.id,
+            createdBy: 'dev',
+            createdAt: new Date().toISOString(),
+            lastModified: new Date().toISOString(),
+            isVerified: true,
+            section: 'Daily' // Mark as Daily so Editor knows to trigger export mode
+        };
+        setEditingLevel(editableLevel);
         setScreen('level-editor');
     };
 
@@ -221,6 +228,8 @@ export default function Target2048App() {
                             existingLevel={editingLevel}
                             onBack={handleBackToMyLevels}
                             onPlayTest={handlePlayCustomLevel}
+                            // ✅ NEW: Automatically switch to export mode if editing a Daily Level
+                            saveMode={editingLevel?.section === 'Daily' ? 'export' : 'local'}
                         />
                     )}
 
@@ -263,14 +272,13 @@ export default function Target2048App() {
                     </Suspense>
                 </div>
 
-                {/* ✅ NEW: Dev Panel (only shows in development) */}
                 {import.meta.env.DEV && (
                     <DevPanel
                         onJumpToLevel={handleSelectLevel}
                         onPlayDaily={handlePlayDaily}
+                        onEditLevel={handleDevEditLevel}
                         currentLevel={currentLevel || testingLevel}
                         onVerifyLevel={() => {
-                            // Trigger a re-render by updating the testingLevel
                             if (testingLevel) {
                                 setTestingLevel({ ...testingLevel });
                             }

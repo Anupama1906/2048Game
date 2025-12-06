@@ -327,15 +327,15 @@ export const DAILY_LEVELS: Level[] = [
     },
     {
         id: 'daily-24',
-        target: 128,
+        target: 64,
         name: "Sticky Symphony",
-        description: "Master the sticky timing.",
-        par: 16,
+        description: "Master the sticky pattern.",
         grid: [
-            [2, S(0), S(0), S(0), 2],
-            [4, S(0), 0, S(0), 4],
-            [8, S(0), 0, S(0), 8],
-            [16, S(0), S(0), S(0), 16]
+            ['W', 0, S(0), 0, 'W'],
+            [0, S(0), 0, S(0), 0],
+            [S(0), 0, G(4), 0, S(0)],
+            [0, S(0), 0, S(0), 0],
+            ['W', 0, S(0), 0, 'W']
         ]
     },
     {

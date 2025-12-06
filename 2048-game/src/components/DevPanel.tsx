@@ -1,16 +1,15 @@
 // src/components/DevPanel.tsx
 import React, { useState } from 'react';
-import { Settings, Calendar, Zap, List, X, CheckCircle, Trash2 } from 'lucide-react';
+import { Settings, Calendar, Zap, X, CheckCircle, Trash2, Edit2, Plus } from 'lucide-react';
 import type { Level } from '../types/types';
 import type { CustomLevel } from '../types/editorTypes';
-import { INITIAL_LEVELS } from '../data/levels';
 import { DAILY_LEVELS } from '../data/dailyLevels';
-import { getDailyLevel } from '../utils/daily';
 import { saveLevel } from '../services/customLevelsStorage';
 
 interface DevPanelProps {
     onJumpToLevel: (level: Level) => void;
     onPlayDaily: (date: string) => void;
+    onEditLevel: (level: Level, isNew?: boolean) => void; // Updated signature
     currentLevel?: Level | CustomLevel | null;
     onVerifyLevel?: () => void;
 }
@@ -18,21 +17,13 @@ interface DevPanelProps {
 const DevPanel: React.FC<DevPanelProps> = ({
     onJumpToLevel,
     onPlayDaily,
+    onEditLevel,
     currentLevel,
     onVerifyLevel
 }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'daily' | 'levels' | 'quick'>('daily');
+    const [activeTab, setActiveTab] = useState<'daily' | 'quick'>('daily');
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-
-    // Jump to specific level
-    const handleLevelJump = (levelId: string) => {
-        const level = INITIAL_LEVELS.find(l => l.id === levelId);
-        if (level) {
-            onJumpToLevel(level);
-            setIsOpen(false);
-        }
-    };
 
     // Play daily by date
     const handlePlayDailyByDate = () => {
@@ -61,24 +52,6 @@ const DevPanel: React.FC<DevPanelProps> = ({
             alert('Progress reset! Refresh the page.');
         }
     };
-
-    // Unlock all levels (set best score to 1 for all)
-    const handleUnlockAll = () => {
-        const scores: Record<string | number, number> = {};
-        INITIAL_LEVELS.forEach(level => {
-            scores[level.id] = 1;
-        });
-        localStorage.setItem('target2048_scores', JSON.stringify(scores));
-        alert('All levels unlocked! Refresh the page.');
-    };
-
-    // Group levels by section
-    const levelsBySection = INITIAL_LEVELS.reduce((acc, level) => {
-        const section = level.section || 'Other';
-        if (!acc[section]) acc[section] = [];
-        acc[section].push(level);
-        return acc;
-    }, {} as Record<string, Level[]>);
 
     return (
         <>
@@ -124,15 +97,14 @@ const DevPanel: React.FC<DevPanelProps> = ({
                         <div className="flex gap-2 px-6 pt-4">
                             {[
                                 { id: 'daily', label: 'Daily Puzzles', icon: Calendar },
-                                { id: 'levels', label: 'All Levels', icon: List },
                                 { id: 'quick', label: 'Quick Actions', icon: Zap }
                             ].map(tab => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id as any)}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition ${activeTab === tab.id
-                                            ? 'bg-purple-600 text-white'
-                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                        ? 'bg-purple-600 text-white'
+                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                                         }`}
                                 >
                                     <tab.icon size={16} />
@@ -145,10 +117,11 @@ const DevPanel: React.FC<DevPanelProps> = ({
                         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                             {/* Daily Puzzles Tab */}
                             {activeTab === 'daily' && (
-                                <div className="space-y-4">
-                                    <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl">
-                                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                            Select Date
+                                <div className="space-y-6">
+                                    {/* Date Selector */}
+                                    <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                                            Test Specific Date
                                         </label>
                                         <div className="flex gap-2">
                                             <input
@@ -161,74 +134,73 @@ const DevPanel: React.FC<DevPanelProps> = ({
                                                 onClick={handlePlayDailyByDate}
                                                 className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition"
                                             >
-                                                Play →
+                                                Play
                                             </button>
                                         </div>
                                     </div>
 
+                                    {/* Edit / Create */}
                                     <div>
-                                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">
-                                            All Daily Levels ({DAILY_LEVELS.length})
-                                        </h3>
-                                        <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto custom-scrollbar">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                                Daily Levels ({DAILY_LEVELS.length})
+                                            </h3>
+                                            <button
+                                                onClick={() => {
+                                                    // Create a dummy new level
+                                                    const newLevel: Level = {
+                                                        id: `daily-${DAILY_LEVELS.length + 1}`,
+                                                        name: 'New Daily',
+                                                        description: 'Description here',
+                                                        target: 64,
+                                                        grid: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+                                                        section: 'Daily'
+                                                    };
+                                                    onEditLevel(newLevel, true);
+                                                    setIsOpen(false);
+                                                }}
+                                                className="flex items-center gap-1 text-xs font-bold bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition"
+                                            >
+                                                <Plus size={14} /> New
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 gap-2 max-h-80 overflow-y-auto custom-scrollbar pr-1">
                                             {DAILY_LEVELS.map((level, index) => (
-                                                <button
-                                                    key={level.id}
-                                                    onClick={() => {
-                                                        onJumpToLevel({ ...level, section: 'Daily', id: `daily-test-${index}` });
-                                                        setIsOpen(false);
-                                                    }}
-                                                    className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 transition text-left"
-                                                >
-                                                    <div>
-                                                        <div className="font-semibold text-slate-800 dark:text-white">
-                                                            {level.name}
+                                                <div key={level.id} className="flex gap-2 group">
+                                                    <button
+                                                        onClick={() => {
+                                                            onJumpToLevel({ ...level, section: 'Daily', id: `daily-test-${index}` });
+                                                            setIsOpen(false);
+                                                        }}
+                                                        className="flex-1 flex items-center justify-between p-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 transition text-left"
+                                                    >
+                                                        <div>
+                                                            <div className="font-semibold text-slate-800 dark:text-white text-sm">
+                                                                {level.name}
+                                                            </div>
+                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                                                Target: {level.target} • ID: {level.id}
+                                                            </div>
                                                         </div>
-                                                        <div className="text-xs text-slate-500 dark:text-slate-400">
-                                                            Target: {level.target} • Par: {level.par || '?'}
+                                                        <div className="text-purple-600 dark:text-purple-400 font-bold text-xs bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded">
+                                                            #{index + 1}
                                                         </div>
-                                                    </div>
-                                                    <div className="text-purple-600 dark:text-purple-400 font-bold">
-                                                        #{index + 1}
-                                                    </div>
-                                                </button>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            onEditLevel(level);
+                                                            setIsOpen(false);
+                                                        }}
+                                                        className="px-4 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg border border-slate-200 dark:border-slate-600 transition flex items-center justify-center"
+                                                        title="Edit this level code"
+                                                    >
+                                                        <Edit2 size={18} />
+                                                    </button>
+                                                </div>
                                             ))}
                                         </div>
                                     </div>
-                                </div>
-                            )}
-
-                            {/* All Levels Tab */}
-                            {activeTab === 'levels' && (
-                                <div className="space-y-4">
-                                    {Object.entries(levelsBySection).map(([section, levels]) => (
-                                        <div key={section}>
-                                            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                                                {section}
-                                            </h3>
-                                            <div className="grid grid-cols-1 gap-2">
-                                                {levels.map(level => (
-                                                    <button
-                                                        key={level.id}
-                                                        onClick={() => handleLevelJump(level.id as string)}
-                                                        className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 transition text-left"
-                                                    >
-                                                        <div>
-                                                            <div className="font-semibold text-slate-800 dark:text-white">
-                                                                {level.name}
-                                                            </div>
-                                                            <div className="text-xs text-slate-500 dark:text-slate-400">
-                                                                Target: {level.target}
-                                                            </div>
-                                                        </div>
-                                                        <div className="text-indigo-600 dark:text-indigo-400 font-mono text-sm">
-                                                            {level.id}
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
                                 </div>
                             )}
 
@@ -251,21 +223,6 @@ const DevPanel: React.FC<DevPanelProps> = ({
                                             </div>
                                         </button>
                                     )}
-
-                                    <button
-                                        onClick={handleUnlockAll}
-                                        className="w-full p-4 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 border-2 border-indigo-300 dark:border-indigo-700 rounded-xl text-left transition flex items-center gap-3"
-                                    >
-                                        <Zap size={24} className="text-indigo-600 dark:text-indigo-400" />
-                                        <div>
-                                            <div className="font-bold text-indigo-700 dark:text-indigo-300">
-                                                Unlock All Levels
-                                            </div>
-                                            <div className="text-xs text-indigo-600 dark:text-indigo-400">
-                                                Set best score for all levels (refresh required)
-                                            </div>
-                                        </div>
-                                    </button>
 
                                     <button
                                         onClick={handleResetProgress}
@@ -291,9 +248,6 @@ const DevPanel: React.FC<DevPanelProps> = ({
                                                 <div><strong>Name:</strong> {currentLevel.name}</div>
                                                 <div><strong>Target:</strong> {currentLevel.target}</div>
                                                 <div><strong>Section:</strong> {currentLevel.section || 'N/A'}</div>
-                                                {'isVerified' in currentLevel && (
-                                                    <div><strong>Verified:</strong> {currentLevel.isVerified ? '✅ Yes' : '❌ No'}</div>
-                                                )}
                                             </div>
                                         ) : (
                                             <p className="text-sm text-slate-500">No level active</p>
