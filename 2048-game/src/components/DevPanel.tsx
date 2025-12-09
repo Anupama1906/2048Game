@@ -1,17 +1,31 @@
 // src/components/DevPanel.tsx
-import React, { useState } from 'react';
-import { Settings, Calendar, Zap, X, CheckCircle, Trash2, Edit2, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings, Calendar, Zap, X, Trash2, Edit2, Plus, Upload, CheckCircle } from 'lucide-react';
 import type { Level } from '../types/types';
 import type { CustomLevel } from '../types/editorTypes';
-import { DAILY_LEVELS } from '../data/dailyLevels';
+import {
+    publishDailyPuzzle,
+    getAllScheduledPuzzles,
+    deleteDailyPuzzle,
+    getPuzzleByDate,
+    hasPuzzleForDate,
+    getDateKey,
+    cleanupOldPuzzles
+} from '../services/dailyPuzzleService';
 import { saveLevel } from '../services/customLevelsStorage';
 
 interface DevPanelProps {
     onJumpToLevel: (level: Level) => void;
     onPlayDaily: (date: string) => void;
-    onEditLevel: (level: Level, isNew?: boolean) => void; // Updated signature
+    onEditLevel: (level: Level) => void;
     currentLevel?: Level | CustomLevel | null;
     onVerifyLevel?: () => void;
+}
+
+interface ScheduledPuzzle {
+    dateKey: string;
+    name: string;
+    target: number;
 }
 
 const DevPanel: React.FC<DevPanelProps> = ({
@@ -25,10 +39,108 @@ const DevPanel: React.FC<DevPanelProps> = ({
     const [activeTab, setActiveTab] = useState<'daily' | 'quick'>('daily');
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
+    // Daily Puzzle State
+    const [scheduledPuzzles, setScheduledPuzzles] = useState<ScheduledPuzzle[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [publishMessage, setPublishMessage] = useState('');
+
+    // Load scheduled puzzles when tab opens
+    useEffect(() => {
+        if (isOpen && activeTab === 'daily') {
+            loadScheduledPuzzles();
+        }
+    }, [isOpen, activeTab]);
+
+    const loadScheduledPuzzles = async () => {
+        setLoading(true);
+        try {
+            const puzzles = await getAllScheduledPuzzles();
+            setScheduledPuzzles(puzzles);
+
+            // Auto-cleanup on load
+            await cleanupOldPuzzles();
+        } catch (error) {
+            console.error('Failed to load puzzles:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Play daily by date
     const handlePlayDailyByDate = () => {
         onPlayDaily(selectedDate);
         setIsOpen(false);
+    };
+
+    // Publish current level as daily
+    const handlePublishCurrentLevel = async () => {
+        if (!currentLevel) {
+            alert('No level is currently loaded');
+            return;
+        }
+
+        const dateKey = getDateKey(new Date(selectedDate));
+        const exists = await hasPuzzleForDate(dateKey);
+
+        if (exists) {
+            const confirm = window.confirm(
+                `⚠️ A puzzle already exists for ${selectedDate}.\nDo you want to OVERWRITE it?`
+            );
+            if (!confirm) return;
+        }
+
+        setLoading(true);
+        setPublishMessage('');
+
+        try {
+            await publishDailyPuzzle(currentLevel, dateKey);
+            setPublishMessage(`✅ Published to ${selectedDate}`);
+            await loadScheduledPuzzles();
+
+            setTimeout(() => setPublishMessage(''), 3000);
+        } catch (error) {
+            console.error('Publish failed:', error);
+            alert('Failed to publish. Check console for details.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Edit existing daily puzzle
+    const handleEditDailyPuzzle = async (dateKey: string) => {
+        setLoading(true);
+        try {
+            const level = await getPuzzleByDate(dateKey);
+            if (level) {
+                onEditLevel(level);
+                setIsOpen(false);
+            } else {
+                alert('Failed to load puzzle');
+            }
+        } catch (error) {
+            console.error('Failed to load puzzle:', error);
+            alert('Error loading puzzle');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Delete daily puzzle
+    const handleDeletePuzzle = async (dateKey: string) => {
+        const confirm = window.confirm(
+            `🗑️ Delete puzzle for ${dateKey}?\nThis cannot be undone.`
+        );
+        if (!confirm) return;
+
+        setLoading(true);
+        try {
+            await deleteDailyPuzzle(dateKey);
+            await loadScheduledPuzzles();
+        } catch (error) {
+            alert('Failed to delete puzzle');
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Auto-verify current custom level
@@ -81,7 +193,7 @@ const DevPanel: React.FC<DevPanelProps> = ({
                                         Dev Tools
                                     </h2>
                                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                                        Local Development Only
+                                        Daily Puzzle Management
                                     </p>
                                 </div>
                             </div>
@@ -103,8 +215,8 @@ const DevPanel: React.FC<DevPanelProps> = ({
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id as any)}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition ${activeTab === tab.id
-                                        ? 'bg-purple-600 text-white'
-                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                            ? 'bg-purple-600 text-white'
+                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                                         }`}
                                 >
                                     <tab.icon size={16} />
@@ -115,96 +227,132 @@ const DevPanel: React.FC<DevPanelProps> = ({
 
                         {/* Content */}
                         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                            {/* Daily Puzzles Tab */}
+                            {/* ========== DAILY PUZZLES TAB ========== */}
                             {activeTab === 'daily' && (
                                 <div className="space-y-6">
-                                    {/* Date Selector */}
-                                    <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                                            Test Specific Date
+                                    {/* Date Picker & Actions */}
+                                    <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-5 rounded-xl border-2 border-purple-200 dark:border-purple-800">
+                                        <label className="block text-sm font-bold text-purple-700 dark:text-purple-300 mb-3">
+                                            📅 Select Release Date
                                         </label>
+                                        <input
+                                            type="date"
+                                            value={selectedDate}
+                                            onChange={(e) => setSelectedDate(e.target.value)}
+                                            className="w-full px-4 py-3 rounded-lg bg-white dark:bg-slate-800 border-2 border-purple-300 dark:border-purple-700 focus:border-purple-500 outline-none text-slate-800 dark:text-white mb-3 text-lg"
+                                        />
+
                                         <div className="flex gap-2">
-                                            <input
-                                                type="date"
-                                                value={selectedDate}
-                                                onChange={(e) => setSelectedDate(e.target.value)}
-                                                className="flex-1 px-4 py-2 rounded-lg bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 focus:border-purple-500 outline-none text-slate-800 dark:text-white"
-                                            />
                                             <button
                                                 onClick={handlePlayDailyByDate}
-                                                className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition"
+                                                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition"
                                             >
-                                                Play
+                                                🎮 Test Date
+                                            </button>
+                                            <button
+                                                onClick={handlePublishCurrentLevel}
+                                                disabled={!currentLevel || loading}
+                                                className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-slate-400 text-white rounded-lg font-semibold transition flex items-center justify-center gap-2"
+                                            >
+                                                {loading ? (
+                                                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                                                ) : (
+                                                    <>
+                                                        <Upload size={18} /> Publish Current
+                                                    </>
+                                                )}
                                             </button>
                                         </div>
+
+                                        {publishMessage && (
+                                            <div className="mt-3 p-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm text-center font-semibold">
+                                                {publishMessage}
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {/* Edit / Create */}
+                                    {/* Scheduled Puzzles List */}
                                     <div>
                                         <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                                Daily Levels ({DAILY_LEVELS.length})
+                                            <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">
+                                                📆 Scheduled Puzzles ({scheduledPuzzles.length})
                                             </h3>
                                             <button
-                                                onClick={() => {
-                                                    // Create a dummy new level
-                                                    const newLevel: Level = {
-                                                        id: `daily-${DAILY_LEVELS.length + 1}`,
-                                                        name: 'New Daily',
-                                                        description: 'Description here',
-                                                        target: 64,
-                                                        grid: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
-                                                        section: 'Daily'
-                                                    };
-                                                    onEditLevel(newLevel, true);
-                                                    setIsOpen(false);
-                                                }}
-                                                className="flex items-center gap-1 text-xs font-bold bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition"
+                                                onClick={loadScheduledPuzzles}
+                                                disabled={loading}
+                                                className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
                                             >
-                                                <Plus size={14} /> New
+                                                🔄 Refresh
                                             </button>
                                         </div>
 
-                                        <div className="grid grid-cols-1 gap-2 max-h-80 overflow-y-auto custom-scrollbar pr-1">
-                                            {DAILY_LEVELS.map((level, index) => (
-                                                <div key={level.id} className="flex gap-2 group">
-                                                    <button
-                                                        onClick={() => {
-                                                            onJumpToLevel({ ...level, section: 'Daily', id: `daily-test-${index}` });
-                                                            setIsOpen(false);
-                                                        }}
-                                                        className="flex-1 flex items-center justify-between p-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 transition text-left"
-                                                    >
-                                                        <div>
-                                                            <div className="font-semibold text-slate-800 dark:text-white text-sm">
-                                                                {level.name}
+                                        {loading && scheduledPuzzles.length === 0 ? (
+                                            <div className="flex justify-center py-10">
+                                                <div className="animate-spin rounded-full h-10 w-10 border-4 border-purple-500 border-t-transparent" />
+                                            </div>
+                                        ) : scheduledPuzzles.length === 0 ? (
+                                            <div className="text-center py-10 text-slate-400">
+                                                <Calendar size={48} className="mx-auto mb-3 opacity-50" />
+                                                <p>No puzzles scheduled yet</p>
+                                            </div>
+                                        ) : (
+                                            <div className="grid gap-2 max-h-80 overflow-y-auto custom-scrollbar pr-1">
+                                                {scheduledPuzzles.map((puzzle) => {
+                                                    const date = new Date(puzzle.dateKey);
+                                                    const isPast = date < new Date();
+                                                    const isToday = puzzle.dateKey === getDateKey();
+
+                                                    return (
+                                                        <div
+                                                            key={puzzle.dateKey}
+                                                            className={`flex items-center gap-3 p-3 rounded-xl border-2 transition ${isToday
+                                                                    ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
+                                                                    : isPast
+                                                                        ? 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 opacity-60'
+                                                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 hover:border-purple-300'
+                                                                }`}
+                                                        >
+                                                            <div className="flex-1">
+                                                                <div className="font-bold text-slate-800 dark:text-white text-sm">
+                                                                    {puzzle.name}
+                                                                </div>
+                                                                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                                                    <span>{puzzle.dateKey}</span>
+                                                                    <span>•</span>
+                                                                    <span>Target: {puzzle.target}</span>
+                                                                    {isToday && (
+                                                                        <>
+                                                                            <span>•</span>
+                                                                            <span className="text-yellow-600 dark:text-yellow-400 font-bold">TODAY</span>
+                                                                        </>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                                                                Target: {level.target} • ID: {level.id}
-                                                            </div>
+
+                                                            <button
+                                                                onClick={() => handleEditDailyPuzzle(puzzle.dateKey)}
+                                                                className="p-2 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg transition"
+                                                                title="Edit"
+                                                            >
+                                                                <Edit2 size={18} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeletePuzzle(puzzle.dateKey)}
+                                                                className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg transition"
+                                                                title="Delete"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
                                                         </div>
-                                                        <div className="text-purple-600 dark:text-purple-400 font-bold text-xs bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded">
-                                                            #{index + 1}
-                                                        </div>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            onEditLevel(level);
-                                                            setIsOpen(false);
-                                                        }}
-                                                        className="px-4 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg border border-slate-200 dark:border-slate-600 transition flex items-center justify-center"
-                                                        title="Edit this level code"
-                                                    >
-                                                        <Edit2 size={18} />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
 
-                            {/* Quick Actions Tab */}
+                            {/* ========== QUICK ACTIONS TAB ========== */}
                             {activeTab === 'quick' && (
                                 <div className="space-y-3">
                                     {currentLevel && 'isVerified' in currentLevel && !currentLevel.isVerified && (

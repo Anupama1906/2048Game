@@ -1,5 +1,4 @@
 // src/Target2048.tsx
-// ... (imports remain the same)
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import type { AppScreen, Level } from './types/types';
 import type { CustomLevel } from './types/editorTypes';
@@ -12,7 +11,7 @@ import LevelEditorView from './components/LevelEditor/LevelEditorView';
 import CustomLevelTestView from './components/CustomLevelTestView';
 import CommunityLevelsView, { type CommunityTab } from './components/CommunityLevelsView';
 import { INITIAL_LEVELS } from './data/levels';
-import { getDailyLevel } from './utils/daily';
+import { fetchDailyPuzzle, getDateKey } from './services/dailyPuzzleService';
 import { useAuth } from './contexts/AuthContext';
 import GameView from './components/GameView';
 import DevPanel from './components/DevPanel';
@@ -28,6 +27,7 @@ export default function Target2048App() {
     const [testingLevel, setTestingLevel] = useState<CustomLevel | null>(null);
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [showUsernameModal, setShowUsernameModal] = useState(false);
+    const [dailyError, setDailyError] = useState(false);
 
     const [communityTab, setCommunityTab] = useState<CommunityTab>('played');
     const [returnToScreen, setReturnToScreen] = useState<ExtendedAppScreen>('my-levels');
@@ -55,20 +55,25 @@ export default function Target2048App() {
 
     const handlePlayDaily = useCallback(async (dateOverride?: string) => {
         await ensureSignedIn();
-        if (dateOverride && import.meta.env.DEV) {
-            const date = new Date(dateOverride);
-            const dailyLevel = getDailyLevel();
-            const customDailyLevel: Level = {
-                ...dailyLevel,
-                id: `daily-${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`,
-                name: `Daily: ${dailyLevel.name} (${dateOverride})`
-            };
-            setCurrentLevel(customDailyLevel);
-        } else {
-            const dailyLevel = getDailyLevel();
+        setDailyError(false);
+
+        try {
+            const dateKey = dateOverride || getDateKey();
+            const dailyLevel = await fetchDailyPuzzle(dateKey);
+
+            if (!dailyLevel) {
+                setDailyError(true);
+                alert(`⚠️ No puzzle available for ${dateKey}.\n\nPlease check back later or use Dev Tools to publish one.`);
+                return;
+            }
+
             setCurrentLevel(dailyLevel);
+            setScreen('game');
+        } catch (error) {
+            console.error('Failed to load daily puzzle:', error);
+            setDailyError(true);
+            alert('Failed to load daily puzzle. Please try again.');
         }
-        setScreen('game');
     }, [ensureSignedIn]);
 
     const handleLevelWon = useCallback((moves: number) => {
@@ -130,7 +135,6 @@ export default function Target2048App() {
         setScreen('level-editor');
     };
 
-    // ✅ NEW: Handle Dev Edit Mode
     const handleDevEditLevel = (level: Level) => {
         const editableLevel: CustomLevel = {
             ...level,
@@ -139,7 +143,7 @@ export default function Target2048App() {
             createdAt: new Date().toISOString(),
             lastModified: new Date().toISOString(),
             isVerified: true,
-            section: 'Daily' // Mark as Daily so Editor knows to trigger export mode
+            section: 'Daily'
         };
         setEditingLevel(editableLevel);
         setScreen('level-editor');
@@ -228,7 +232,6 @@ export default function Target2048App() {
                             existingLevel={editingLevel}
                             onBack={handleBackToMyLevels}
                             onPlayTest={handlePlayCustomLevel}
-                            // ✅ NEW: Automatically switch to export mode if editing a Daily Level
                             saveMode={editingLevel?.section === 'Daily' ? 'export' : 'local'}
                         />
                     )}
