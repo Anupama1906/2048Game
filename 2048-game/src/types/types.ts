@@ -1,4 +1,3 @@
-// src/types/types.ts
 export interface LockedCell {
     type: 'locked';
     value: number;
@@ -18,7 +17,7 @@ export interface StickyCell {
 export interface TemporaryCell {
     type: 'temporary';
     value: number;
-    limit: number; // Number of times it can be left
+    limit: number;
 }
 
 export type Cell = number | 'WALL' | LockedCell | GeneratorCell | StickyCell | TemporaryCell;

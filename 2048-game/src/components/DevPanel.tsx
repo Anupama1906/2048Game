@@ -209,14 +209,13 @@ const DevPanel: React.FC<DevPanelProps> = ({
                         <div className="flex gap-2 px-6 pt-4">
                             {[
                                 { id: 'daily', label: 'Daily Puzzles', icon: Calendar },
-                                { id: 'quick', label: 'Quick Actions', icon: Zap }
                             ].map(tab => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id as any)}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition ${activeTab === tab.id
-                                            ? 'bg-purple-600 text-white'
-                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                        ? 'bg-purple-600 text-white'
+                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                                         }`}
                                 >
                                     <tab.icon size={16} />
@@ -306,10 +305,10 @@ const DevPanel: React.FC<DevPanelProps> = ({
                                                         <div
                                                             key={puzzle.dateKey}
                                                             className={`flex items-center gap-3 p-3 rounded-xl border-2 transition ${isToday
-                                                                    ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
-                                                                    : isPast
-                                                                        ? 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 opacity-60'
-                                                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 hover:border-purple-300'
+                                                                ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
+                                                                : isPast
+                                                                    ? 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 opacity-60'
+                                                                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 hover:border-purple-300'
                                                                 }`}
                                                         >
                                                             <div className="flex-1">
@@ -352,57 +351,7 @@ const DevPanel: React.FC<DevPanelProps> = ({
                                 </div>
                             )}
 
-                            {/* ========== QUICK ACTIONS TAB ========== */}
-                            {activeTab === 'quick' && (
-                                <div className="space-y-3">
-                                    {currentLevel && 'isVerified' in currentLevel && !currentLevel.isVerified && (
-                                        <button
-                                            onClick={handleAutoVerify}
-                                            className="w-full p-4 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 border-2 border-green-300 dark:border-green-700 rounded-xl text-left transition flex items-center gap-3"
-                                        >
-                                            <CheckCircle size={24} className="text-green-600 dark:text-green-400" />
-                                            <div>
-                                                <div className="font-bold text-green-700 dark:text-green-300">
-                                                    Auto-Verify Current Level
-                                                </div>
-                                                <div className="text-xs text-green-600 dark:text-green-400">
-                                                    Skip play requirement for custom level
-                                                </div>
-                                            </div>
-                                        </button>
-                                    )}
 
-                                    <button
-                                        onClick={handleResetProgress}
-                                        className="w-full p-4 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 border-2 border-orange-300 dark:border-orange-700 rounded-xl text-left transition flex items-center gap-3"
-                                    >
-                                        <Trash2 size={24} className="text-orange-600 dark:text-orange-400" />
-                                        <div>
-                                            <div className="font-bold text-orange-700 dark:text-orange-300">
-                                                Reset All Progress
-                                            </div>
-                                            <div className="text-xs text-orange-600 dark:text-orange-400">
-                                                Clear all best scores (refresh required)
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <div className="mt-6 p-4 bg-slate-100 dark:bg-slate-900 rounded-xl">
-                                        <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-2">
-                                            Current Level Info
-                                        </h4>
-                                        {currentLevel ? (
-                                            <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
-                                                <div><strong>Name:</strong> {currentLevel.name}</div>
-                                                <div><strong>Target:</strong> {currentLevel.target}</div>
-                                                <div><strong>Section:</strong> {currentLevel.section || 'N/A'}</div>
-                                            </div>
-                                        ) : (
-                                            <p className="text-sm text-slate-500">No level active</p>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>

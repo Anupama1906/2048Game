@@ -1,4 +1,3 @@
-// src/components/tiles/SpecialTile.tsx
 import React from 'react';
 import { Lock, Factory, Magnet, Hourglass } from 'lucide-react';
 import { NumberTile } from './NumberTile';
@@ -44,7 +43,6 @@ export const SpecialTile: React.FC<SpecialTileProps> = ({ type, value, boardSize
     const borderSize = "border-2 sm:border-4";
     const iconSize = boardSize > 5 ? 10 : 14;
 
-    // 1. Handle Empty Special State (e.g. Empty Sticky Tile)
     if (value === 0) {
         const bgClass = EMPTY_BG[type];
         const iconColor = EMPTY_ICON_COLOR[type];
@@ -60,7 +58,6 @@ export const SpecialTile: React.FC<SpecialTileProps> = ({ type, value, boardSize
         );
     }
 
-    // 2. Render Active Special Tile
     return (
         <NumberTile
             value={value}

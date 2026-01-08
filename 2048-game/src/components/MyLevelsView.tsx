@@ -96,7 +96,7 @@ const MyLevelsView: React.FC<MyLevelsViewProps> = ({ onBack, onCreateNew, onEdit
                             variant="owner"
                             onPlay={onPlay}
                             onEdit={onEdit}
-                            onDelete={() => handleDelete(level)} // Trigger delete logic
+                            onDelete={() => handleDelete(level)} 
                             onShare={handleShare}
                             confirmDeleteId={deleteConfirm}
                             onCancelDelete={() => setDeleteConfirm(null)}
