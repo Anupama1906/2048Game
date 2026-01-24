@@ -25,7 +25,7 @@ export type Cell = number | 'WALL' | LockedCell | GeneratorCell | StickyCell | T
 export type Grid = Cell[][];
 export type GameState = 'playing' | 'won' | 'lost';
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
-export type AppScreen = 'menu' | 'level-select' | 'game' | 'creator';
+export type AppScreen = 'menu' | 'level-select' | 'game';
 
 export interface Level {
     id: number | string;

@@ -70,7 +70,6 @@ export const GameController: React.FC<GameControllerProps> = ({
             gameState={gameState}
             moves={moves}
             onBack={onBack}
-            onMove={move}
             onUndo={undo}
             onReset={reset}
             canUndo={canUndo}

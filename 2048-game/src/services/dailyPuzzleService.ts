@@ -104,7 +104,7 @@ export const publishDailyPuzzle = async (
         par: level.par || 10,
         publishedAt: Timestamp.now(),
         releaseDate: dateKey,
-        author: 'admin' 
+        author: 'admin'
     };
 
     await setDoc(docRef, storageData);
@@ -136,14 +136,6 @@ export const cleanupOldPuzzles = async (): Promise<void> => {
     } catch (error) {
         console.error('Failed to cleanup old puzzles:', error);
     }
-};
-
-// ========================================
-// 🔍 Fetch Puzzle by Date (for DevPanel)
-// ========================================
-
-export const getPuzzleByDate = async (dateKey: string): Promise<Level | null> => {
-    return await fetchDailyPuzzle(dateKey);
 };
 
 // ========================================

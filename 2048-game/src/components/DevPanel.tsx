@@ -7,7 +7,7 @@ import {
     publishDailyPuzzle,
     getAllScheduledPuzzles,
     deleteDailyPuzzle,
-    getPuzzleByDate,
+    fetchDailyPuzzle,
     hasPuzzleForDate,
     getDateKey,
     cleanupOldPuzzles
@@ -110,7 +110,7 @@ const DevPanel: React.FC<DevPanelProps> = ({
     const handleEditDailyPuzzle = async (dateKey: string) => {
         setLoading(true);
         try {
-            const level = await getPuzzleByDate(dateKey);
+            const level = await fetchDailyPuzzle(dateKey);
             if (level) {
                 onEditLevel(level);
                 setIsOpen(false);

@@ -10,8 +10,6 @@ interface GameBoardProps {
     gameState: GameState;
     moves: number;
     onBack: () => void;
-    // onMove is kept for type compatibility, even though logic is now handled by hooks in the parent
-    onMove: (direction: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT') => void;
     onUndo: () => void;
     onReset: () => void;
     canUndo: boolean;
