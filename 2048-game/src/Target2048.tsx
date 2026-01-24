@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react';
 import type { AppScreen, Level } from './types/types';
 import type { CustomLevel } from './types/editorTypes';
-import { Calendar, AlertTriangle } from 'lucide-react'; // Added icons
+import { Calendar, AlertTriangle } from 'lucide-react';
 import MainMenuView from './components/MainMenuView';
 import UsernameModal from './components/UsernameModal';
 import DailyGameView from './components/DailyGameView';
@@ -10,8 +10,8 @@ import LoadingScreen from './components/LoadingScreen';
 import MyLevelsView from './components/MyLevelsView';
 import LevelEditorView from './components/LevelEditor/LevelEditorView';
 import CustomLevelTestView from './components/CustomLevelTestView';
-import CommunityLevelsView, { type CommunityTab } from './components/CommunityLevelsView';
-import { Modal } from './components/shared/Modal'; // Added Modal import
+import CommunityLevelsView from './components/CommunityLevelsView'; // Removed type import
+import { Modal } from './components/shared/Modal';
 import { INITIAL_LEVELS } from './data/levels';
 import { fetchDailyPuzzle, getDateKey } from './services/dailyPuzzleService';
 import { useAuth } from './contexts/AuthContext';
@@ -34,11 +34,12 @@ export default function Target2048App() {
     const [showNoDailyModal, setShowNoDailyModal] = useState(false);
     const [noDailyDate, setNoDailyDate] = useState('');
 
-    const [communityTab, setCommunityTab] = useState<CommunityTab>('played');
+    // Removed communityTab state
     const [returnToScreen, setReturnToScreen] = useState<ExtendedAppScreen>('my-levels');
 
     const { user, username, loading: authLoading, ensureSignedIn } = useAuth();
     const pendingAction = useRef<(() => void) | null>(null);
+
 
     // Helper to check username requirement
     const requireUsername = async (action: () => void) => {
@@ -78,7 +79,7 @@ export default function Target2048App() {
 
                 if (!dailyLevel) {
                     setNoDailyDate(dateKey);
-                    setShowNoDailyModal(true); // Show modal instead of alert
+                    setShowNoDailyModal(true);
                     return;
                 }
 
@@ -142,7 +143,7 @@ export default function Target2048App() {
 
     const handleUsernameClose = () => {
         setShowUsernameModal(false);
-        pendingAction.current = null; // Discard pending action
+        pendingAction.current = null;
     };
 
     const handleOpenMyLevels = useCallback(async () => {
@@ -240,8 +241,7 @@ export default function Target2048App() {
                                 setScreen('test-level');
                                 setReturnToScreen('community-levels');
                             }}
-                            activeTab={communityTab}
-                            onTabChange={setCommunityTab}
+                        // Removed activeTab and onTabChange props
                         />
                     )}
 
@@ -345,7 +345,7 @@ export default function Target2048App() {
                         onClick={() => setShowNoDailyModal(false)}
                         className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white rounded-xl font-bold transition"
                     >
-                        Okay, I'll wait
+                        Continue
                     </button>
                 </div>
             </Modal>
