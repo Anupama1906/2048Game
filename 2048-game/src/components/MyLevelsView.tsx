@@ -16,7 +16,7 @@ interface MyLevelsViewProps {
 }
 
 const MyLevelsView: React.FC<MyLevelsViewProps> = ({ onBack, onCreateNew, onEdit, onPlay }) => {
-    const { userId } = useAuth();
+    const { userId, username } = useAuth();
     const [levels, setLevels] = useState<CustomLevel[]>([]);
     const [deleteConfirm, setDeleteConfirm] = useState<string | number | null>(null);
     const [sharingLevel, setSharingLevel] = useState<string | number | null>(null);
@@ -45,11 +45,13 @@ const MyLevelsView: React.FC<MyLevelsViewProps> = ({ onBack, onCreateNew, onEdit
     };
 
     const handleShare = async (level: CustomLevel) => {
+        if (!username) return;
+
         setSharingLevel(level.id);
         setShareCode(null);
         setCopied(false);
         try {
-            const code = await shareLevel(level);
+            const code = await shareLevel(level, username);
             setShareCode(code);
         } catch (error: any) {
             alert(error.message || 'Failed to share level.');
@@ -96,7 +98,7 @@ const MyLevelsView: React.FC<MyLevelsViewProps> = ({ onBack, onCreateNew, onEdit
                             variant="owner"
                             onPlay={onPlay}
                             onEdit={onEdit}
-                            onDelete={() => handleDelete(level)} 
+                            onDelete={() => handleDelete(level)}
                             onShare={handleShare}
                             confirmDeleteId={deleteConfirm}
                             onCancelDelete={() => setDeleteConfirm(null)}

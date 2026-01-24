@@ -13,7 +13,7 @@ import {
     deleteDoc
 } from 'firebase/firestore';
 import type { CustomLevel } from '../types/editorTypes';
-import { serializeGrid, deserializeGrid } from '../utils/gridSerialization'; 
+import { serializeGrid, deserializeGrid } from '../utils/gridSerialization';
 
 // Generate a unique 6-character code
 export const generateShareCode = (): string => {

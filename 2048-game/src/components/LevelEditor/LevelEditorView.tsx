@@ -203,7 +203,7 @@ ${gridString}
             target: targetValue,
             grid: grid as any,
             section: 'Custom',
-            createdBy: username,
+            createdBy: userId,
             createdAt: existingLevel?.createdAt || new Date().toISOString(),
             lastModified: new Date().toISOString(),
             isVerified: existingLevel?.isVerified || false,
