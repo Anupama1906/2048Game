@@ -5,18 +5,18 @@ import type { CustomLevel } from '../../types/editorTypes';
 
 interface LevelCardProps {
     level: CustomLevel;
-    variant?: 'owner' | 'community'; // Added variant prop
+    variant?: 'owner' | 'community'; 
     onPlay: (level: CustomLevel) => void;
     onEdit?: (level: CustomLevel) => void;
-    onDelete?: (level: CustomLevel) => void; // Changed to accept full level for consistency
+    onDelete?: (level: CustomLevel) => void; 
     onShare?: (level: CustomLevel) => void;
-    confirmDeleteId?: string | number | null; // Added for MyLevelsView
-    onCancelDelete?: () => void;              // Added for MyLevelsView
+    confirmDeleteId?: string | number | null; 
+    onCancelDelete?: () => void;              
 }
 
 export const LevelCard: React.FC<LevelCardProps> = ({
     level,
-    variant = 'owner', // Default to owner
+    variant = 'owner', 
     onPlay,
     onEdit,
     onDelete,

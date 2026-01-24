@@ -82,7 +82,7 @@ const deleteSharedLevel = async (shareCode: string): Promise<void> => {
 };
 
 // Share a level to Firebase (updated to replace existing)
-export const shareLevel = async (level: CustomLevel): Promise<string> => {
+export const shareLevel = async (level: CustomLevel, username: string): Promise<string> => {
     if (!level.isVerified) {
         throw new Error('Only verified levels can be shared');
     }
@@ -125,7 +125,7 @@ export const shareLevel = async (level: CustomLevel): Promise<string> => {
         thinWalls: level.thinWalls ? JSON.stringify(level.thinWalls) : null,
         section: level.section || 'Custom',
         par: level.par || null,
-        createdBy: level.createdBy,
+        createdBy: username,
         createdAt: level.createdAt,
         lastModified: level.lastModified,
         isVerified: level.isVerified,
@@ -135,7 +135,6 @@ export const shareLevel = async (level: CustomLevel): Promise<string> => {
         likes: 0
     };
 
-    // Save to Firebase (overwrites if exists)
     const levelRef = doc(db, 'sharedLevels', shareCode);
     await setDoc(levelRef, sharedLevel);
 

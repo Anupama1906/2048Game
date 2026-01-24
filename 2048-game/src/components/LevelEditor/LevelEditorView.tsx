@@ -26,7 +26,7 @@ const LevelEditorView: React.FC<LevelEditorViewProps> = ({
     onPlayTest,
     saveMode = 'local'
 }) => {
-    const { userId } = useAuth();
+    const { userId, username } = useAuth();
 
     // -- State --
     const [mode, setMode] = useState<EditorMode>('edit');
@@ -195,7 +195,7 @@ ${gridString}
             return;
         }
 
-        if (!userId) return;
+        if (!userId || !username) return;
         const level: CustomLevel = {
             id: existingLevel?.id || generateLevelId(userId),
             name: levelName,
@@ -203,7 +203,7 @@ ${gridString}
             target: targetValue,
             grid: grid as any,
             section: 'Custom',
-            createdBy: userId,
+            createdBy: username,
             createdAt: existingLevel?.createdAt || new Date().toISOString(),
             lastModified: new Date().toISOString(),
             isVerified: existingLevel?.isVerified || false,
@@ -214,7 +214,7 @@ ${gridString}
     };
 
     const handlePlayTest = () => {
-        if (!userId) return;
+        if (!userId || !username) return;
         const level: CustomLevel = {
             id: existingLevel?.id || generateLevelId(userId),
             name: levelName,
@@ -222,7 +222,7 @@ ${gridString}
             target: targetValue,
             grid: grid as any,
             section: 'Custom',
-            createdBy: userId,
+            createdBy: username,
             createdAt: existingLevel?.createdAt || new Date().toISOString(),
             lastModified: new Date().toISOString(),
             isVerified: false,

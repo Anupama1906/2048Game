@@ -64,23 +64,23 @@ export default function Target2048App() {
     }, []);
 
     const handlePlayDaily = useCallback(async (dateOverride?: string) => {
-        await ensureSignedIn();
+        requireUsername(async () => {
+            try {
+                const dateKey = dateOverride || getDateKey();
+                const dailyLevel = await fetchDailyPuzzle(dateKey);
 
-        try {
-            const dateKey = dateOverride || getDateKey();
-            const dailyLevel = await fetchDailyPuzzle(dateKey);
+                if (!dailyLevel) {
+                    alert(`⚠️ No puzzle available for ${dateKey}.\n\nPlease check back Tomorrow!`);
+                    return;
+                }
 
-            if (!dailyLevel) {
-                alert(`⚠️ No puzzle available for ${dateKey}.\n\nPlease check back Tomorrow!`);
-                return;
+                setCurrentLevel(dailyLevel);
+                setScreen('game');
+            } catch (error) {
+                console.error('Failed to load daily puzzle:', error);
+                alert('Failed to load daily puzzle. Please try again.');
             }
-
-            setCurrentLevel(dailyLevel);
-            setScreen('game');
-        } catch (error) {
-            console.error('Failed to load daily puzzle:', error);
-            alert('Failed to load daily puzzle. Please try again.');
-        }
+        });
     }, [ensureSignedIn, username]);
 
     const handleLevelWon = useCallback((moves: number) => {
@@ -132,9 +132,8 @@ export default function Target2048App() {
     };
 
     const handleOpenMyLevels = useCallback(async () => {
-        await ensureSignedIn();
-        setScreen('my-levels');
-    }, [ensureSignedIn, username]);
+        requireUsername(() => setScreen('my-levels'));
+    }, [requireUsername]);
 
     const handleCreateNewLevel = () => {
         setEditingLevel(null);
