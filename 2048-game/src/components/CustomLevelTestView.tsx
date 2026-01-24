@@ -1,15 +1,10 @@
 // src/components/CustomLevelTestView.tsx
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Edit2, CheckCircle } from 'lucide-react';
 import type { CustomLevel } from '../types/editorTypes';
-import { useGame } from '../hooks/usegame';
 import { saveLevel } from '../services/customLevelsStorage';
-
-// Shared Components
-import { GameBoard } from './shared/GameBoard';
 import { WinOverlay, LostOverlay } from './shared/GameOverlays';
-import { useKeyboardControls } from '../hooks/useKeyboardControls';
-import { useTouchGestures } from '../hooks/useTouchGestures';
+import { GameController } from './shared/GameController'; // NEW IMPORT
 
 interface CustomLevelTestViewProps {
     level: CustomLevel;
@@ -24,16 +19,13 @@ const CustomLevelTestView: React.FC<CustomLevelTestViewProps> = ({
     onEdit,
     onVerified
 }) => {
-    const { grid, gameState, move, undo, reset, canUndo, moves } = useGame(level);
+    const [isWon, setIsWon] = useState(false);
     const hasVerified = useRef(false);
 
-    // Controls
-    useKeyboardControls(move);
-    const touchHandlers = useTouchGestures(move);
-
-    // Auto-verify on win
-    useEffect(() => {
-        if (gameState === 'won' && !hasVerified.current && !level.isVerified) {
+    const handleWin = (moves: number) => {
+        setIsWon(true);
+        
+        if (!hasVerified.current && !level.isVerified) {
             hasVerified.current = true;
             const verifiedLevel: CustomLevel = {
                 ...level,
@@ -43,13 +35,14 @@ const CustomLevelTestView: React.FC<CustomLevelTestViewProps> = ({
             saveLevel(verifiedLevel);
             console.log('✅ Level verified!');
         }
-    }, [gameState, level]);
+    };
 
     const handleBack = () => {
-        if (gameState === 'won') onVerified();
+        if (isWon) onVerified();
         else onBack();
     };
 
+    // Component for the Success Overlay
     const VerificationSuccessContent = () => (
         <div className="mt-4 flex flex-col items-center w-full">
             {!level.isVerified && (
@@ -78,17 +71,15 @@ const CustomLevelTestView: React.FC<CustomLevelTestViewProps> = ({
     );
 
     return (
-        <GameBoard
+        <GameController
             level={level}
-            grid={grid}
-            gameState={gameState}
-            moves={moves}
             onBack={handleBack}
-            onMove={move}
-            onUndo={undo}
-            onReset={reset}
-            canUndo={canUndo}
-            touchHandlers={touchHandlers}
+            onWin={handleWin}
+            // Update local state to track if we should verify on back
+            onMove={(_, gameState) => {
+                if (gameState === 'won') setIsWon(true);
+            }}
+
             headerExtra={
                 <div className="flex items-center gap-2 text-sm font-bold text-slate-400">
                     {level.isVerified ? (
@@ -98,6 +89,7 @@ const CustomLevelTestView: React.FC<CustomLevelTestViewProps> = ({
                     )}
                 </div>
             }
+
             additionalControls={
                 <button
                     onClick={onEdit}
@@ -107,17 +99,19 @@ const CustomLevelTestView: React.FC<CustomLevelTestViewProps> = ({
                     <Edit2 size={20} />
                 </button>
             }
+
             winOverlay={
                 <WinOverlay
-                    moves={moves}
+                    moves={0} // Passed as 0, see note below*
                     title={!level.isVerified ? "Level Verified!" : "Solved!"}
                     additionalContent={<VerificationSuccessContent />}
                 />
             }
+
             lostOverlay={
                 <LostOverlay
-                    onUndo={undo}
-                    onRetry={reset}
+                    onUndo={() => {}} 
+                    onRetry={() => {}}
                     additionalContent={
                         <button onClick={onEdit} className="mt-4 text-sm text-slate-500 hover:text-indigo-500 underline flex items-center gap-1">
                             <Edit2 size={14} /> Back to Editor

@@ -8,6 +8,8 @@ const L = (val: number): LockedCell => ({ type: 'locked', value: val });
 const S = (val: number): StickyCell => ({ type: 'sticky', value: val });
 const T = (limit: number, val: number = 0): TemporaryCell => ({ type: 'temporary', limit, value: val });
 
+const G = (val: number): Cell => ({ type: 'generator', value: val });
+
 describe('Game Mechanics', () => {
 
     describe('Helpers', () => {
@@ -41,13 +43,11 @@ describe('Game Mechanics', () => {
         it('should calculate merge results correctly', () => {
             expect(Mechanics.getMergeResult(2, 2)).toBe(4);
             expect(Mechanics.getMergeResult(4, 4)).toBe(8);
-            // Annihilation
             expect(Mechanics.getMergeResult(2, -2)).toBe(0);
         });
     });
 
     describe('Row Processing (Slide & Merge)', () => {
-        // Note: processRow simulates a slide to the LEFT (index 0)
 
         it('should slide tiles to the left', () => {
             const input = [0, 0, 2, 0];
@@ -104,14 +104,14 @@ describe('Game Mechanics', () => {
 
         describe('Locked Tiles', () => {
             it('should unlock when merged with matching number', () => {
-                const input = [L(2), 2, 0, 0];
-                const expected = [4, 0, 0, 0];
+                const input = [0,L(2), 2, 0];
+                const expected = [0, 4, 0, 0];
                 expect(Mechanics.processRow(input)).toEqual(expected);
             });
 
             it('should trap a number if lock value is 0', () => {
-                const input = [L(0), 4, 0, 0];
-                const expected = [L(4), 0, 0, 0];
+                const input = [0,L(0), 4, 0];
+                const expected = [0,L(4), 0, 0];
                 expect(Mechanics.processRow(input)).toEqual(expected);
             });
 
@@ -168,6 +168,43 @@ describe('Game Mechanics', () => {
             it('should merge two negatives', () => {
                 const input = [-2, -2, 0, 0];
                 const expected = [-4, 0, 0, 0];
+                expect(Mechanics.processRow(input)).toEqual(expected);
+            });
+            it('should destroy lock status', () => {
+                const input = [0, L(-2), 2, 0];
+                const expected = [0, 0, 0, 0];
+                expect(Mechanics.processRow(input)).toEqual(expected);
+            });
+
+            it('should annihilate without changing limit', () => {
+                const input = [T(2, -2), 2, 0, 0];
+                const expected = [T(2, 0), 0, 0, 0];
+                expect(Mechanics.processRow(input)).toEqual(expected);
+            });
+        });
+
+        describe('Generators', () => {
+            it('should produce numbers', () => {
+                const input = [0, 0, 0, G(2)];
+                const expected = [2, 0, 0, G(2)];
+                expect(Mechanics.processRow(input)).toEqual(expected);
+            });
+
+            it('Unmergable', () => {
+                const input = [0, G(2), 0, 2];
+                const expected = [2, G(2), 2, 0];
+                expect(Mechanics.processRow(input)).toEqual(expected);
+            });
+            it('Cannot be destroyed', () => {
+                const input = [0, G(2), 0, -2];
+                const expected = [2, G(2), -2, 0];
+                expect(Mechanics.processRow(input)).toEqual(expected);
+            });
+
+
+            it('mergable with existing numbers', () => {
+                const input = [2, 0, 0, G(2)];
+                const expected = [4, 0, 0, G(2)];
                 expect(Mechanics.processRow(input)).toEqual(expected);
             });
         });

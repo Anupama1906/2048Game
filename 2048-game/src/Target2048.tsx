@@ -1,5 +1,5 @@
 // src/Target2048.tsx
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react';
 import type { AppScreen, Level } from './types/types';
 import type { CustomLevel } from './types/editorTypes';
 import MainMenuView from './components/MainMenuView';
@@ -33,6 +33,18 @@ export default function Target2048App() {
     const [returnToScreen, setReturnToScreen] = useState<ExtendedAppScreen>('my-levels');
 
     const { user, username, loading: authLoading, ensureSignedIn } = useAuth();
+    const pendingAction = useRef<(() => void) | null>(null);
+
+    // Helper to check username requirement
+    const requireUsername = async (action: () => void) => {
+        await ensureSignedIn();
+        if (!username) {
+            pendingAction.current = action;
+            setShowUsernameModal(true);
+        } else {
+            action();
+        }
+    };
 
     const [bestScores, setBestScores] = useState<Record<string | number, number>>(() => {
         const saved = localStorage.getItem('target2048_scores');
@@ -63,7 +75,7 @@ export default function Target2048App() {
 
             if (!dailyLevel) {
                 setDailyError(true);
-                alert(`⚠️ No puzzle available for ${dateKey}.\n\nPlease check back later or use Dev Tools to publish one.`);
+                alert(`⚠️ No puzzle available for ${dateKey}.\n\nPlease check back Tomorrow!`);
                 return;
             }
 
@@ -74,7 +86,7 @@ export default function Target2048App() {
             setDailyError(true);
             alert('Failed to load daily puzzle. Please try again.');
         }
-    }, [ensureSignedIn]);
+    }, [ensureSignedIn, username]);
 
     const handleLevelWon = useCallback((moves: number) => {
         if (currentLevel) {
@@ -118,17 +130,24 @@ export default function Target2048App() {
 
     const handleUsernameSet = () => {
         setShowUsernameModal(false);
+        if (pendingAction.current) {
+            pendingAction.current();
+            pendingAction.current = null;
+        }
     };
 
     const handleOpenMyLevels = useCallback(async () => {
         await ensureSignedIn();
         setScreen('my-levels');
-    }, [ensureSignedIn]);
+    }, [ensureSignedIn, username]);
 
     const handleCreateNewLevel = () => {
         setEditingLevel(null);
         setScreen('level-editor');
     };
+    const handleOpenCommunity = useCallback(async () => {
+        requireUsername(() => setScreen('community-levels'));
+    }, [ensureSignedIn, username]);
 
     const handleEditLevel = (level: CustomLevel) => {
         setEditingLevel(level);
@@ -199,7 +218,7 @@ export default function Target2048App() {
                             onPlay={() => setScreen('level-select')}
                             onDaily={() => handlePlayDaily()}
                             onCreate={handleOpenMyLevels}
-                            onCommunity={() => setScreen('community-levels')}
+                            onCommunity={handleOpenCommunity}
                             isDarkMode={isDarkMode}
                             toggleDarkMode={toggleDarkMode}
                         />

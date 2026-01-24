@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import type { Level } from '../types/types';
 import type { CustomLevel } from '../types/editorTypes';
+import { serializeGrid, deserializeGrid } from '../utils/gridSerialization'; // NEW IMPORT
 
 const COLLECTION = 'daily_puzzles';
 const CLEANUP_DAYS = 10;
@@ -51,27 +52,7 @@ export const fetchDailyPuzzle = async (dateKey?: string): Promise<Level | null> 
 
         const data = snapshot.data();
 
-        // Parse grid if stored as JSON string
-        let gridData = data.grid;
-        if (typeof gridData === 'string') {
-            try {
-                gridData = JSON.parse(gridData);
-            } catch (e) {
-                console.error('Grid parse error:', e);
-                return null;
-            }
-        }
-
-        // Deserialize cells
-        const deserializedGrid = gridData.map((row: any[]) =>
-            row.map((cell: any) => {
-                if (typeof cell === 'object' && cell !== null && cell._type === 'object') {
-                    const { _type, ...rest } = cell;
-                    return rest;
-                }
-                return cell;
-            })
-        );
+        const deserializedGrid = deserializeGrid(data.grid);
 
         // Parse thin walls
         let thinWalls = data.thinWalls;
@@ -112,17 +93,7 @@ export const publishDailyPuzzle = async (
 ): Promise<void> => {
     const docRef = doc(db, COLLECTION, dateKey);
 
-    // Serialize cells for Firebase storage
-    const serializeCell = (cell: any) => {
-        if (typeof cell === 'object' && cell !== null && cell !== 'WALL') {
-            return { _type: 'object', ...cell };
-        }
-        return cell;
-    };
-
-    const serializedGrid = level.grid.map(row =>
-        row.map(cell => serializeCell(cell))
-    );
+    const serializedGrid = serializeGrid(level.grid as any);
 
     const storageData = {
         name: level.name,
@@ -133,7 +104,7 @@ export const publishDailyPuzzle = async (
         par: level.par || 10,
         publishedAt: Timestamp.now(),
         releaseDate: dateKey,
-        author: 'admin' // or pass userId if needed
+        author: 'admin' 
     };
 
     await setDoc(docRef, storageData);

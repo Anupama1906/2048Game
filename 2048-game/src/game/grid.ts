@@ -65,8 +65,30 @@ export const rotateGridCounter = (grid: Grid): Grid => {
 };
 
 // Map walls to a 2D boolean grid (requires specific rows/cols now)
-export const createWallMap = (walls: [number, number][] | undefined, rows: number, cols: number): boolean[][] => {
-    const map = Array(rows).fill(null).map(() => Array(cols).fill(false));
-    walls?.forEach(([r, c]) => { if (r < rows && c < cols) map[r][c] = true; });
+export const createWallMap = (
+    walls: [number, number][] | undefined,
+    rows: number,
+    cols: number
+): boolean[][] => {
+    const safeRows = Math.max(0, rows | 0);
+    const safeCols = Math.max(0, cols | 0);
+
+    const map = Array.from({ length: safeRows }, () =>
+        Array.from({ length: safeCols }, () => false)
+    );
+
+    if (!walls || safeRows === 0 || safeCols === 0) {
+        return map;
+    }
+
+    for (const [rawR, rawC] of walls) {
+        const r = rawR | 0;
+        const c = rawC | 0;
+
+        if (r >= 0 && r < safeRows && c >= 0 && c < safeCols) {
+            map[r][c] = true;
+        }
+    }
+
     return map;
 };

@@ -12,12 +12,12 @@ interface TileProps {
 }
 
 const Tile: React.FC<TileProps> = ({ value, boardSize }) => {
-    // 1. Handle Empty/Floor Cases
+
     if (value === 0) {
         return <div className="w-full h-full rounded-lg bg-gray-200/50 dark:bg-gray-700/50" />;
     }
 
-    // 2. Handle Wall (Hardcoded visual for now, could be its own component)
+
     if (value === WALL) {
         return (
             <div className="w-full h-full rounded-lg bg-slate-700 dark:bg-slate-600 shadow-inner flex items-center justify-center border-4 border-slate-800 dark:border-slate-500">
@@ -26,7 +26,6 @@ const Tile: React.FC<TileProps> = ({ value, boardSize }) => {
         );
     }
 
-    // 3. Handle Special Objects (Locked, Sticky, etc.)
     if (typeof value === 'object') {
         return (
             <SpecialTile
@@ -37,8 +36,6 @@ const Tile: React.FC<TileProps> = ({ value, boardSize }) => {
             />
         );
     }
-
-    // 4. Handle Standard Number
     return <NumberTile value={value} boardSize={boardSize} />;
 };
 

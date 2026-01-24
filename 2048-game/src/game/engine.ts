@@ -9,7 +9,6 @@ export interface MoveResult {
     scoreDelta: number;
 }
 
-// ... (expandRowWithWalls and contractRow remain the same) ...
 const expandRowWithWalls = (row: Cell[], wallMapRow: boolean[]): Cell[] => {
     const expanded: Cell[] = [];
     for (let i = 0; i < row.length; i++) {
@@ -36,11 +35,10 @@ const contractRow = (processedRow: Cell[], wallMapRow: boolean[], originalLength
 };
 
 export const moveGrid = (grid: Grid, direction: Direction, level: Level): MoveResult => {
-    // 1. Orient the board so we are always moving LEFT
     let rotations = 0;
-    if (direction === 'UP') rotations = 3;    // 270deg CW
-    if (direction === 'RIGHT') rotations = 2; // 180deg CW
-    if (direction === 'DOWN') rotations = 1;  // 90deg CW
+    if (direction === 'UP') rotations = 3;    
+    if (direction === 'RIGHT') rotations = 2; 
+    if (direction === 'DOWN') rotations = 1;  
 
     let workingGrid = GridOps.cloneGrid(grid);
 

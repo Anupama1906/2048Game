@@ -15,7 +15,6 @@ export const NumberTile: React.FC<NumberTileProps> = ({
     extraClasses = '',
     children
 }) => {
-    // Logic extracted from original Tile.tsx
     const getFontSize = (val: number) => {
         const len = Math.abs(val).toString().length;
 

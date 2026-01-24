@@ -13,6 +13,7 @@ import {
     deleteDoc
 } from 'firebase/firestore';
 import type { CustomLevel } from '../types/editorTypes';
+import { serializeGrid, deserializeGrid } from '../utils/gridSerialization'; // NEW IMPORT
 
 // Generate a unique 6-character code
 export const generateShareCode = (): string => {
@@ -33,27 +34,8 @@ const checkCodeExists = async (code: string): Promise<boolean> => {
 
 // Helper function to deserialize levels
 const deserializeLevel = (data: any): CustomLevel => {
-    const deserializeCell = (cell: any) => {
-        if (typeof cell === 'object' && cell !== null && cell._type === 'object') {
-            const { _type, ...rest } = cell;
-            return rest;
-        }
-        return cell;
-    };
-
-    let rawGrid = data.grid;
-    if (typeof rawGrid === 'string') {
-        try {
-            rawGrid = JSON.parse(rawGrid);
-        } catch (e) {
-            console.error('Failed to parse grid JSON:', e);
-            rawGrid = [];
-        }
-    }
-
-    const deserializedGrid = Array.isArray(rawGrid)
-        ? rawGrid.map((row: any[]) => row.map((cell: any) => deserializeCell(cell)))
-        : [];
+    // REFACTOR: Use shared deserializer
+    const deserializedGrid = deserializeGrid(data.grid);
 
     let thinWalls = data.thinWalls;
     if (typeof thinWalls === 'string') {
@@ -89,7 +71,6 @@ const findExistingSharedLevel = async (levelId: string | number): Promise<string
     return null;
 };
 
-// Delete old shared version (Internal helper if needed, currently unused but good to keep)
 const deleteSharedLevel = async (shareCode: string): Promise<void> => {
     try {
         const levelRef = doc(db, 'sharedLevels', shareCode);
@@ -132,17 +113,7 @@ export const shareLevel = async (level: CustomLevel): Promise<string> => {
         }
     }
 
-    // Convert grid to Firebase-safe format
-    const serializeCell = (cell: any) => {
-        if (typeof cell === 'object' && cell !== null && cell !== 'WALL') {
-            return { _type: 'object', ...cell };
-        }
-        return cell;
-    };
-
-    const serializedGrid = level.grid.map(row =>
-        row.map(cell => serializeCell(cell))
-    );
+    const serializedGrid = serializeGrid(level.grid as any);
 
     // Prepare level data for sharing
     const sharedLevel = {
@@ -234,7 +205,7 @@ export const getLevelsByCreator = async (username: string): Promise<CustomLevel[
     return snapshot.docs.map(doc => deserializeLevel(doc.data()));
 };
 
-// --- NEW: Recently Played Local Storage Logic ---
+// --- Recently Played Local Storage Logic ---
 const RECENTLY_PLAYED_KEY = 'target2048_recently_played';
 
 export const saveRecentlyPlayed = (level: CustomLevel): void => {

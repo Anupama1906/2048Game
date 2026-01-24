@@ -1,10 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+// src/components/GameView.tsx
+import React from 'react';
 import type { Level } from '../types/types';
-import { useGame } from '../hooks/usegame';
-import { GameBoard } from './shared/GameBoard';
 import { WinOverlay, LostOverlay } from './shared/GameOverlays';
-import { useKeyboardControls } from '../hooks/useKeyboardControls';
-import { useTouchGestures } from '../hooks/useTouchGestures';
+import { GameController } from './shared/GameController'; // NEW IMPORT
 
 interface GameViewProps {
     level: Level;
@@ -21,35 +19,12 @@ const GameView: React.FC<GameViewProps> = ({
     onLevelWon,
     onComplete
 }) => {
-    const { grid, gameState, move, undo, reset, canUndo, moves } = useGame(level);
-    const hasSavedScore = useRef(false);
-
-    // Use custom hooks
-    useKeyboardControls(move);
-    const touchHandlers = useTouchGestures(move);
-
-    // Auto-save score on win
-    useEffect(() => {
-        if (gameState === 'playing') {
-            hasSavedScore.current = false;
-        } else if (gameState === 'won' && !hasSavedScore.current) {
-            onLevelWon(moves);
-            hasSavedScore.current = true;
-        }
-    }, [gameState, moves, onLevelWon]);
-
     return (
-        <GameBoard
+        <GameController
             level={level}
-            grid={grid}
-            gameState={gameState}
-            moves={moves}
-            onBack={() => onBack()}
-            onMove={move}
-            onUndo={undo}
-            onReset={reset}
-            canUndo={canUndo}
-            touchHandlers={touchHandlers}
+            onBack={onBack}
+            onWin={onLevelWon} // Handled automatically by controller now
+            
             headerExtra={
                 <div className="text-right">
                     <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Best</div>
@@ -58,8 +33,10 @@ const GameView: React.FC<GameViewProps> = ({
                     </div>
                 </div>
             }
-            winOverlay={<WinOverlay moves={moves} onContinue={onComplete} />}
-            lostOverlay={<LostOverlay onUndo={undo} onRetry={reset} />}
+            
+            winOverlay={<WinOverlay moves={0} onContinue={onComplete} />} 
+
+            lostOverlay={<LostOverlay onUndo={() => {}} onRetry={() => {}} />} 
         />
     );
 };
