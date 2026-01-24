@@ -1,7 +1,8 @@
 // src/components/LeaderboardModal.tsx
 import React, { useEffect, useState } from 'react';
 import { Award, Trophy, Medal, Clock, TrendingUp } from 'lucide-react';
-import { getDailyLeaderboard, formatTime, type LeaderboardEntry } from '../services/leaderboardService';
+import { getDailyLeaderboard, type LeaderboardEntry } from '../services/leaderboardService';
+import { formatTime } from '../utils/formatters';
 import { useAuth } from '../contexts/AuthContext';
 import { Modal } from './shared/Modal';
 

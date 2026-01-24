@@ -1,6 +1,6 @@
 // src/components/MyLevelsView.tsx
 import React, { useState, useEffect } from 'react';
-import { Edit2, Plus, Copy, Check, Share2, CheckCircle2 } from 'lucide-react';
+import { Edit2, Plus, Copy, Check, CheckCircle2 } from 'lucide-react';
 import type { CustomLevel } from '../types/editorTypes';
 import { getUserLevels, deleteLevel } from '../services/customLevelsStorage';
 import { shareLevel } from '../services/sharedLevelsService';

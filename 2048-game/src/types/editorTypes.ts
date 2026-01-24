@@ -1,15 +1,15 @@
 // src/types/editorTypes.ts
-import type { Cell, Level } from './types';
+import type { Level } from './types';
 
 export interface CustomLevel extends Level {
     createdBy: string;
     createdAt: string;
     lastModified: string;
     isVerified: boolean;
-    shareCode?: string;    // NEW
-    sharedAt?: string;     // NEW
-    plays?: number;        // NEW
-    likes?: number;        // NEW
+    shareCode?: string;    
+    sharedAt?: string;     
+    plays?: number;        
+    likes?: number;      
 }
 
 export type EditorMode = 'edit' | 'play';
@@ -19,7 +19,7 @@ export type TileCategory = 'tiles' | 'walls' | 'mechanics';
 export interface EditorTool {
     category: TileCategory;
     type: 'number' | 'wall' | 'thin-wall' | 'mechanic' | 'empty';
-    value?: number; // for numbered tiles
+    value?: number; 
     mechanic?: 'locked' | 'generator' | 'sticky' | 'temporary';
     label: string;
     icon?: string;

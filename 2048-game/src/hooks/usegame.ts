@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Level, Grid, GameState, Direction, Cell } from '../types/types';
+import type { Level, Grid, GameState, Direction } from '../types/types';
 import { WALL } from '../constants/game';
 import * as Engine from '../game/engine';
 import { getCellValue } from '../game/mechanics';

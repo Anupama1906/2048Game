@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import type { Level } from '../types/types';
 import type { CustomLevel } from '../types/editorTypes';
-import { serializeGrid, deserializeGrid } from '../utils/gridSerialization'; // NEW IMPORT
+import { serializeGrid, deserializeGrid } from '../utils/gridSerialization'; 
 
 const COLLECTION = 'daily_puzzles';
 const CLEANUP_DAYS = 10;

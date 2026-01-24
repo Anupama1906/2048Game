@@ -1,6 +1,6 @@
 // src/components/LevelEditor/EditorHeader.tsx
 import React from 'react';
-import { Settings, Eraser, Play, Save, Edit2, Copy, Check, FileCode } from 'lucide-react';
+import { Settings, Eraser, Play, Save, Edit2, Check, FileCode } from 'lucide-react';
 import { ViewHeader } from '../shared/ViewHeader';
 
 interface EditorHeaderProps {

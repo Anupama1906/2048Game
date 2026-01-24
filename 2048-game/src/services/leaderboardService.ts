@@ -7,7 +7,6 @@ import {
   query,
   orderBy,
   limit,
-  where,
   getDoc
 } from 'firebase/firestore';
 
@@ -15,9 +14,9 @@ export interface LeaderboardEntry {
   userId: string;
   username: string;
   moves: number;
-  time: number; // in seconds
+  time: number; 
   timestamp: string;
-  score: number; // Calculated: lower is better
+  score: number; 
 }
 
 // Calculate score: prioritize moves, then time
@@ -80,12 +79,4 @@ export const getUserRank = async (
   const leaderboard = await getDailyLeaderboard(levelId, 1000);
   const index = leaderboard.findIndex(entry => entry.userId === userId);
   return index >= 0 ? index + 1 : null;
-};
-
-// Format time as MM:SS.ms
-export const formatTime = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  const ms = Math.floor((seconds % 1) * 100);
-  return `${mins}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
 };

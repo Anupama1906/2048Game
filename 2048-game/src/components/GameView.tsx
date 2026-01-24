@@ -2,7 +2,7 @@
 import React from 'react';
 import type { Level } from '../types/types';
 import { WinOverlay, LostOverlay } from './shared/GameOverlays';
-import { GameController } from './shared/GameController'; // NEW IMPORT
+import { GameController } from './shared/GameController'; 
 
 interface GameViewProps {
     level: Level;

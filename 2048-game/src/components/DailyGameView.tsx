@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Clock, Award, Lock, CheckCircle, AlertTriangle } from 'lucide-react';
 import type { Level } from '../types/types';
 import { useAuth } from '../contexts/AuthContext';
-import { submitDailyScore, formatTime, hasUserSubmitted } from '../services/leaderboardService';
+import { submitDailyScore, hasUserSubmitted } from '../services/leaderboardService';
+import { formatTime } from '../utils/formatters';
 import LeaderboardModal from './LeaderboardModal';
 import { WinOverlay, LostOverlay } from './shared/GameOverlays';
-import { GameController } from './shared/GameController'; // Updated Import
-import { useDailyTimer } from '../hooks/useDailyTimer'; // Updated Import
+import { GameController } from './shared/GameController'; 
+import { useDailyTimer } from '../hooks/useDailyTimer'; 
 
 interface DailyGameViewProps {
     level: Level;

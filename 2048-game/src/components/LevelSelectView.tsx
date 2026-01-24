@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, Star, Check, Lock, Trophy } from 'lucide-react';
+import { ChevronRight, Star, Check, Trophy } from 'lucide-react';
 import type { Level } from '../types/types';
 import { INITIAL_LEVELS } from '../data/levels';
 

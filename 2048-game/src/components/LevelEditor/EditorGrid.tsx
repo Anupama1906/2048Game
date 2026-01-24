@@ -1,7 +1,7 @@
 // src/components/LevelEditor/EditorGrid.tsx
 import React from 'react';
 import Tile from '../Tile';
-import type { Grid, Cell } from '../../types/types';
+import type { Grid} from '../../types/types';
 import type { EditorTool } from '../../types/editorTypes';
 
 interface EditorGridProps {

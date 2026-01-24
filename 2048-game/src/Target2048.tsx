@@ -27,8 +27,6 @@ export default function Target2048App() {
     const [testingLevel, setTestingLevel] = useState<CustomLevel | null>(null);
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [showUsernameModal, setShowUsernameModal] = useState(false);
-    const [dailyError, setDailyError] = useState(false);
-
     const [communityTab, setCommunityTab] = useState<CommunityTab>('played');
     const [returnToScreen, setReturnToScreen] = useState<ExtendedAppScreen>('my-levels');
 
@@ -67,14 +65,12 @@ export default function Target2048App() {
 
     const handlePlayDaily = useCallback(async (dateOverride?: string) => {
         await ensureSignedIn();
-        setDailyError(false);
 
         try {
             const dateKey = dateOverride || getDateKey();
             const dailyLevel = await fetchDailyPuzzle(dateKey);
 
             if (!dailyLevel) {
-                setDailyError(true);
                 alert(`⚠️ No puzzle available for ${dateKey}.\n\nPlease check back Tomorrow!`);
                 return;
             }
@@ -83,7 +79,6 @@ export default function Target2048App() {
             setScreen('game');
         } catch (error) {
             console.error('Failed to load daily puzzle:', error);
-            setDailyError(true);
             alert('Failed to load daily puzzle. Please try again.');
         }
     }, [ensureSignedIn, username]);

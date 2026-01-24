@@ -1,6 +1,6 @@
 // src/components/DevPanel.tsx
 import React, { useState, useEffect } from 'react';
-import { Settings, Calendar, Zap, X, Trash2, Edit2, Plus, Upload, CheckCircle } from 'lucide-react';
+import { Settings, Calendar, X, Trash2, Edit2, Upload } from 'lucide-react';
 import type { Level } from '../types/types';
 import type { CustomLevel } from '../types/editorTypes';
 import {

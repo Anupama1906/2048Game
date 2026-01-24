@@ -13,7 +13,6 @@ export interface StickyCell {
     value: number;
 }
 
-// NEW: Temporary Cell Definition
 export interface TemporaryCell {
     type: 'temporary';
     value: number;

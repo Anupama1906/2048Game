@@ -14,7 +14,7 @@ interface GameBoardProps {
     onReset: () => void;
     canUndo: boolean;
 
-    // ADDED: Accept touch handlers from the parent hook
+    // Accept touch handlers from the parent hook
     touchHandlers?: {
         onTouchStart: (e: React.TouchEvent) => void;
         onTouchMove: (e: React.TouchEvent) => void;
@@ -37,7 +37,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     onUndo,
     onReset,
     canUndo,
-    touchHandlers, // Destructure the new prop
+    touchHandlers,
     headerExtra,
     winOverlay,
     lostOverlay,
@@ -45,9 +45,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 }) => {
 
     // Layout logic
-    const currentGrid = grid.length > 0 ? grid : level.grid;
-    const rows = currentGrid.length;
-    const cols = currentGrid[0]?.length || 0;
+    const rows = grid.length;
+    const cols = grid[0]?.length || 0;
     const boardSize = Math.max(rows, cols);
 
     let gapClass = 'gap-3';

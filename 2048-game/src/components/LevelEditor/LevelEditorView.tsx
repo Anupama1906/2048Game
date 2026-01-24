@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import type { CustomLevel, EditorMode, EditorTool, TileCategory } from '../../types/editorTypes';
 import type { Grid, Cell } from '../../types/types';
-import { POSITIVE_TILES, NEGATIVE_TILES, WALL_TOOLS, MECHANIC_TOOLS, EMPTY_TOOL } from '../../types/editorTypes';
+import { POSITIVE_TILES, WALL_TOOLS, MECHANIC_TOOLS, EMPTY_TOOL } from '../../types/editorTypes';
 import { WALL } from '../../constants/game';
 import { useAuth } from '../../contexts/AuthContext';
 import { saveLevel, generateLevelId } from '../../services/customLevelsStorage';
-
+import { createEmptyGrid } from '../../game/grid';
 // Sub-components
 import { EditorHeader } from './EditorHeader';
 import { EditorToolbox } from './EditorToolbox';
@@ -66,17 +66,12 @@ const LevelEditorView: React.FC<LevelEditorViewProps> = ({
             setTargetValue(existingLevel.target);
             if (existingLevel.thinWalls) setThinWalls(existingLevel.thinWalls);
         } else {
-            // New Level
             setGrid(createEmptyGrid(4, 4));
             setRows(4);
             setCols(4);
             setShowProperties(true);
         }
     }, [existingLevel]);
-
-    function createEmptyGrid(r: number, c: number): Grid {
-        return Array(r).fill(null).map(() => Array(c).fill(0));
-    }
 
     // -- Handlers --
 

@@ -4,7 +4,7 @@ import { Edit2, CheckCircle } from 'lucide-react';
 import type { CustomLevel } from '../types/editorTypes';
 import { saveLevel } from '../services/customLevelsStorage';
 import { WinOverlay, LostOverlay } from './shared/GameOverlays';
-import { GameController } from './shared/GameController'; // NEW IMPORT
+import { GameController } from './shared/GameController'; 
 
 interface CustomLevelTestViewProps {
     level: CustomLevel;
