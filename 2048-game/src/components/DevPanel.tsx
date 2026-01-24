@@ -1,6 +1,6 @@
 // src/components/DevPanel.tsx
 import React, { useState, useEffect } from 'react';
-import { Settings, Calendar, X, Trash2, Edit2, Upload } from 'lucide-react';
+import { Settings, Calendar, X, Trash2, Edit2, Upload, PlusCircle } from 'lucide-react';
 import type { Level } from '../types/types';
 import type { CustomLevel } from '../types/editorTypes';
 import {
@@ -20,6 +20,9 @@ interface DevPanelProps {
     onEditLevel: (level: Level) => void;
     currentLevel?: Level | CustomLevel | null;
     onVerifyLevel?: () => void;
+    onCreateDaily: () => void;
+    isOpen?: boolean;
+    onToggle?: (isOpen: boolean) => void;
 }
 
 interface ScheduledPuzzle {
@@ -33,9 +36,14 @@ const DevPanel: React.FC<DevPanelProps> = ({
     onPlayDaily,
     onEditLevel,
     currentLevel,
-    onVerifyLevel
+    onVerifyLevel,
+    onCreateDaily,
+    isOpen: controlledIsOpen,
+    onToggle
 }) => {
-    const [isOpen, setIsOpen] = useState(false);
+    const [internalIsOpen, setInternalIsOpen] = useState(false);
+    const isVisible = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+
     const [activeTab, setActiveTab] = useState<'daily' | 'quick'>('daily');
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -44,20 +52,23 @@ const DevPanel: React.FC<DevPanelProps> = ({
     const [loading, setLoading] = useState(false);
     const [publishMessage, setPublishMessage] = useState('');
 
+    const handleVisibilityChange = (open: boolean) => {
+        setInternalIsOpen(open);
+        onToggle?.(open);
+    };
+
     // Load scheduled puzzles when tab opens
     useEffect(() => {
-        if (isOpen && activeTab === 'daily') {
+        if (isVisible && activeTab === 'daily') {
             loadScheduledPuzzles();
         }
-    }, [isOpen, activeTab]);
+    }, [isVisible, activeTab]);
 
     const loadScheduledPuzzles = async () => {
         setLoading(true);
         try {
             const puzzles = await getAllScheduledPuzzles();
             setScheduledPuzzles(puzzles);
-
-            // Auto-cleanup on load
             await cleanupOldPuzzles();
         } catch (error) {
             console.error('Failed to load puzzles:', error);
@@ -66,13 +77,11 @@ const DevPanel: React.FC<DevPanelProps> = ({
         }
     };
 
-    // Play daily by date
     const handlePlayDailyByDate = () => {
         onPlayDaily(selectedDate);
-        setIsOpen(false);
+        handleVisibilityChange(false);
     };
 
-    // Publish current level as daily
     const handlePublishCurrentLevel = async () => {
         if (!currentLevel) {
             alert('No level is currently loaded');
@@ -106,14 +115,13 @@ const DevPanel: React.FC<DevPanelProps> = ({
         }
     };
 
-    // Edit existing daily puzzle
     const handleEditDailyPuzzle = async (dateKey: string) => {
         setLoading(true);
         try {
             const level = await fetchDailyPuzzle(dateKey);
             if (level) {
                 onEditLevel(level);
-                setIsOpen(false);
+                handleVisibilityChange(false);
             } else {
                 alert('Failed to load puzzle');
             }
@@ -125,7 +133,6 @@ const DevPanel: React.FC<DevPanelProps> = ({
         }
     };
 
-    // Delete daily puzzle
     const handleDeletePuzzle = async (dateKey: string) => {
         const confirm = window.confirm(
             `🗑️ Delete puzzle for ${dateKey}?\nThis cannot be undone.`
@@ -143,34 +150,12 @@ const DevPanel: React.FC<DevPanelProps> = ({
         }
     };
 
-    // Auto-verify current custom level
-    const handleAutoVerify = () => {
-        if (currentLevel && 'isVerified' in currentLevel) {
-            const verifiedLevel: CustomLevel = {
-                ...currentLevel,
-                isVerified: true,
-                lastModified: new Date().toISOString()
-            };
-            saveLevel(verifiedLevel);
-            alert('✅ Level auto-verified!');
-            onVerifyLevel?.();
-        }
-    };
-
-    // Reset all progress
-    const handleResetProgress = () => {
-        if (confirm('Reset all progress? This will clear best scores.')) {
-            localStorage.removeItem('target2048_scores');
-            alert('Progress reset! Refresh the page.');
-        }
-    };
-
     return (
         <>
             {/* Floating Button */}
-            {!isOpen && (
+            {!isVisible && (
                 <button
-                    onClick={() => setIsOpen(true)}
+                    onClick={() => handleVisibilityChange(true)}
                     className="fixed bottom-6 right-6 z-50 p-4 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-2xl transition-all hover:scale-110 active:scale-95"
                     title="Dev Tools (Local Only)"
                 >
@@ -179,7 +164,7 @@ const DevPanel: React.FC<DevPanelProps> = ({
             )}
 
             {/* Dev Panel Modal */}
-            {isOpen && (
+            {isVisible && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col animate-in slide-in-from-bottom sm:zoom-in duration-200">
                         {/* Header */}
@@ -198,7 +183,7 @@ const DevPanel: React.FC<DevPanelProps> = ({
                                 </div>
                             </div>
                             <button
-                                onClick={() => setIsOpen(false)}
+                                onClick={() => handleVisibilityChange(false)}
                                 className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition"
                             >
                                 <X size={24} className="text-slate-600 dark:text-slate-300" />
@@ -207,29 +192,33 @@ const DevPanel: React.FC<DevPanelProps> = ({
 
                         {/* Tabs */}
                         <div className="flex gap-2 px-6 pt-4">
-                            {[
-                                { id: 'daily', label: 'Daily Puzzles', icon: Calendar },
-                            ].map(tab => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id as any)}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition ${activeTab === tab.id
-                                        ? 'bg-purple-600 text-white'
-                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                                        }`}
-                                >
-                                    <tab.icon size={16} />
-                                    {tab.label}
-                                </button>
-                            ))}
+                            <button
+                                onClick={() => setActiveTab('daily')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition ${activeTab === 'daily'
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                    }`}
+                            >
+                                <Calendar size={16} />
+                                Daily Puzzles
+                            </button>
                         </div>
 
                         {/* Content */}
                         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                            {/* ========== DAILY PUZZLES TAB ========== */}
                             {activeTab === 'daily' && (
                                 <div className="space-y-6">
-                                    {/* Date Picker & Actions */}
+
+                                    {/* Create New Daily Level Action */}
+                                    <button
+                                        onClick={onCreateDaily}
+                                        className="w-full py-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-3 transition transform hover:scale-[1.02]"
+                                    >
+                                        <PlusCircle size={24} />
+                                        Create New Daily Level
+                                    </button>
+
+                                    {/* Date Picker & Publish Actions */}
                                     <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-5 rounded-xl border-2 border-purple-200 dark:border-purple-800">
                                         <label className="block text-sm font-bold text-purple-700 dark:text-purple-300 mb-3">
                                             📅 Select Release Date
@@ -350,8 +339,6 @@ const DevPanel: React.FC<DevPanelProps> = ({
                                     </div>
                                 </div>
                             )}
-
-
                         </div>
                     </div>
                 </div>

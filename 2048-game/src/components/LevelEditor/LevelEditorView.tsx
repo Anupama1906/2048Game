@@ -7,8 +7,8 @@ import { WALL } from '../../constants/game';
 import { useAuth } from '../../contexts/AuthContext';
 import { saveLevel, generateLevelId } from '../../services/customLevelsStorage';
 import { createEmptyGrid } from '../../game/grid';
-import { AlertTriangle } from 'lucide-react'; // Added icon
-import { Modal } from '../shared/Modal'; // Added Modal
+import { AlertTriangle } from 'lucide-react';
+import { Modal } from '../shared/Modal';
 
 // Sub-components
 import { EditorHeader } from './EditorHeader';
@@ -20,7 +20,7 @@ interface LevelEditorViewProps {
     existingLevel?: CustomLevel | null;
     onBack: () => void;
     onPlayTest: (level: CustomLevel) => void;
-    saveMode?: 'local' | 'export';
+    saveMode?: 'local' | 'export' | 'daily-dev';
 }
 
 const LevelEditorView: React.FC<LevelEditorViewProps> = ({
@@ -76,7 +76,10 @@ const LevelEditorView: React.FC<LevelEditorViewProps> = ({
             setGrid(createEmptyGrid(4, 4));
             setRows(4);
             setCols(4);
-            setShowProperties(true);
+            // Auto-show properties for new levels
+            if (saveMode !== 'export') {
+                setShowProperties(true);
+            }
         }
         setIsDirty(false); // Reset dirty flag on load
     }, [existingLevel]);
@@ -205,6 +208,13 @@ ${gridString}
             return;
         }
 
+        // daily-dev mode usually relies on 'Test/Publish', but if we wanted a 'Save Draft' button:
+        if (saveMode === 'daily-dev') {
+            // For now, no explicit save action, maybe just alert? 
+            // Or we could implement a temporary save here if requested.
+            return;
+        }
+
         if (!userId || !username) return;
         const level: CustomLevel = {
             id: existingLevel?.id || generateLevelId(userId),
@@ -220,20 +230,23 @@ ${gridString}
             thinWalls: (thinWalls.vertical.length > 0 || thinWalls.horizontal.length > 0) ? thinWalls : undefined
         };
         saveLevel(level);
-        setIsDirty(false); // Clear dirty flag
+        setIsDirty(false);
         onBack();
     };
 
     const handlePlayTest = () => {
-        if (!userId || !username) return;
+        // Build the level object for testing
+        // For daily-dev, we might mock userId/username if not present
+        const effectiveUserId = userId || 'dev-user';
+
         const level: CustomLevel = {
-            id: existingLevel?.id || generateLevelId(userId),
+            id: existingLevel?.id || generateLevelId(effectiveUserId),
             name: levelName,
             description: levelDescription,
             target: targetValue,
             grid: grid as any,
-            section: 'Custom',
-            createdBy: userId,
+            section: saveMode === 'daily-dev' ? 'Daily' : 'Custom',
+            createdBy: effectiveUserId,
             createdAt: existingLevel?.createdAt || new Date().toISOString(),
             lastModified: new Date().toISOString(),
             isVerified: false,
@@ -244,6 +257,7 @@ ${gridString}
 
     // Intercept Back Button
     const handleBackRequest = () => {
+        // If daily-dev, we might be looser about saving since it's dev tool
         if (isDirty && saveMode === 'local') {
             setShowExitModal(true);
         } else {
@@ -251,14 +265,20 @@ ${gridString}
         }
     };
 
+    const getSubtitle = () => {
+        if (saveMode === 'daily-dev') return "Create Daily Puzzle";
+        if (saveMode === 'export') return "Editing Daily Level (Dev)";
+        return existingLevel ? "Editing" : "Creating";
+    };
+
     return (
         <div className="flex flex-col h-full w-full max-w-6xl mx-auto px-4 sm:px-6 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
             <EditorHeader
                 title="Level Editor"
-                subtitle={saveMode === 'export' ? "Editing Daily Level (Dev)" : (existingLevel ? "Editing" : "Creating")}
+                subtitle={getSubtitle()}
                 saveMode={saveMode}
                 copiedCode={copiedCode}
-                onBack={handleBackRequest} // Use interceptor
+                onBack={handleBackRequest}
                 onSettings={() => setShowProperties(true)}
                 onClear={() => { if (confirm('Clear grid?')) { setGrid(createEmptyGrid(rows, cols)); setIsDirty(true); } }}
                 onTest={handlePlayTest}

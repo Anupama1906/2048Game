@@ -1,6 +1,6 @@
 // src/components/CustomLevelTestView.tsx
 import React, { useState, useRef } from 'react';
-import { Edit2, CheckCircle, Share2, Copy, Check } from 'lucide-react';
+import { Edit2, CheckCircle, Share2, Copy, Check, Upload } from 'lucide-react';
 import type { CustomLevel } from '../types/editorTypes';
 import { saveLevel } from '../services/customLevelsStorage';
 import { shareLevel } from '../services/sharedLevelsService';
@@ -13,13 +13,17 @@ interface CustomLevelTestViewProps {
     onBack: () => void;
     onEdit: () => void;
     onVerified: () => void;
+    isDevDaily?: boolean;      // New Prop
+    onPublish?: (level: CustomLevel) => void; // New Prop
 }
 
 const CustomLevelTestView: React.FC<CustomLevelTestViewProps> = ({
     level,
     onBack,
     onEdit,
-    onVerified
+    onVerified,
+    isDevDaily,
+    onPublish
 }) => {
     const { username } = useAuth();
     const [isWon, setIsWon] = useState(false);
@@ -33,7 +37,8 @@ const CustomLevelTestView: React.FC<CustomLevelTestViewProps> = ({
     const handleWin = (moves: number) => {
         setIsWon(true);
 
-        if (!hasVerified.current && !level.isVerified) {
+        // Standard verification flow
+        if (!hasVerified.current && !level.isVerified && !isDevDaily) {
             hasVerified.current = true;
             const verifiedLevel: CustomLevel = {
                 ...level,
@@ -54,7 +59,6 @@ const CustomLevelTestView: React.FC<CustomLevelTestViewProps> = ({
         if (!username) return;
         setIsSharing(true);
         try {
-            // Ensure we share the verified version
             const levelToShare = { ...level, isVerified: true };
             const code = await shareLevel(levelToShare, username);
             setShareCode(code);
@@ -73,10 +77,16 @@ const CustomLevelTestView: React.FC<CustomLevelTestViewProps> = ({
         }
     };
 
+    const handleDevPublish = () => {
+        if (onPublish) onPublish(level);
+    };
+
     // Component for the Success Overlay
     const VerificationSuccessContent = () => (
         <div className="mt-4 flex flex-col items-center w-full max-w-sm">
-            {!level.isVerified && !shareCode && (
+
+            {/* Standard Verification Msg */}
+            {!isDevDaily && !level.isVerified && !shareCode && (
                 <div className="bg-green-100 dark:bg-green-900/30 px-4 py-2 rounded-lg mb-4">
                     <p className="text-green-700 dark:text-green-400 text-sm font-semibold flex items-center gap-2">
                         <CheckCircle size={16} />
@@ -85,35 +95,48 @@ const CustomLevelTestView: React.FC<CustomLevelTestViewProps> = ({
                 </div>
             )}
 
-            {shareCode ? (
-                <div className="mb-4 w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 animate-in zoom-in">
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2 uppercase font-bold text-center">Level Shared Code</p>
-                    <div className="flex gap-2">
-                        <div className="flex-1 bg-white dark:bg-slate-900 border-2 border-indigo-500 rounded-lg flex items-center justify-center font-mono font-bold text-lg text-indigo-600 dark:text-indigo-400 tracking-wider">
-                            {shareCode}
-                        </div>
-                        <button
-                            onClick={handleCopyCode}
-                            className="p-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition"
-                        >
-                            {copied ? <Check size={20} /> : <Copy size={20} />}
-                        </button>
-                    </div>
-                </div>
-            ) : (
+            {/* Daily Dev Publish Button */}
+            {isDevDaily && (
                 <button
-                    onClick={handleShare}
-                    disabled={isSharing}
-                    className="mb-4 w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-lg shadow-indigo-200 dark:shadow-none"
+                    onClick={handleDevPublish}
+                    className="mb-4 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-lg shadow-green-200 dark:shadow-none animate-in zoom-in"
                 >
-                    {isSharing ? (
-                        <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
-                    ) : (
-                        <>
-                            <Share2 size={18} /> Share Level
-                        </>
-                    )}
+                    <Upload size={18} /> Publish as Daily Level
                 </button>
+            )}
+
+            {/* Share Flow (Only for Standard) */}
+            {!isDevDaily && (
+                shareCode ? (
+                    <div className="mb-4 w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 animate-in zoom-in">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-2 uppercase font-bold text-center">Level Shared Code</p>
+                        <div className="flex gap-2">
+                            <div className="flex-1 bg-white dark:bg-slate-900 border-2 border-indigo-500 rounded-lg flex items-center justify-center font-mono font-bold text-lg text-indigo-600 dark:text-indigo-400 tracking-wider">
+                                {shareCode}
+                            </div>
+                            <button
+                                onClick={handleCopyCode}
+                                className="p-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition"
+                            >
+                                {copied ? <Check size={20} /> : <Copy size={20} />}
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <button
+                        onClick={handleShare}
+                        disabled={isSharing}
+                        className="mb-4 w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-lg shadow-indigo-200 dark:shadow-none"
+                    >
+                        {isSharing ? (
+                            <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                        ) : (
+                            <>
+                                <Share2 size={18} /> Share Level
+                            </>
+                        )}
+                    </button>
+                )
             )}
 
             <div className="flex gap-2 w-full">
@@ -144,7 +167,9 @@ const CustomLevelTestView: React.FC<CustomLevelTestViewProps> = ({
 
             headerExtra={
                 <div className="flex items-center gap-2 text-sm font-bold text-slate-400">
-                    {level.isVerified ? (
+                    {isDevDaily ? (
+                        <span className="text-purple-500 flex items-center gap-1">Daily Dev Mode</span>
+                    ) : level.isVerified ? (
                         <span className="text-green-500 flex items-center gap-1"><CheckCircle size={14} /> Verified</span>
                     ) : (
                         <span>Testing Mode</span>
@@ -165,7 +190,7 @@ const CustomLevelTestView: React.FC<CustomLevelTestViewProps> = ({
             winOverlay={
                 <WinOverlay
                     moves={0}
-                    title={!level.isVerified ? "Level Verified!" : "Solved!"}
+                    title={isDevDaily ? "Verified!" : (!level.isVerified ? "Level Verified!" : "Solved!")}
                     additionalContent={<VerificationSuccessContent />}
                 />
             }

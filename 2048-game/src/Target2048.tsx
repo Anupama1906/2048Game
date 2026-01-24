@@ -1,4 +1,3 @@
-// src/Target2048.tsx
 import { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react';
 import type { AppScreen, Level } from './types/types';
 import type { CustomLevel } from './types/editorTypes';
@@ -10,7 +9,7 @@ import LoadingScreen from './components/LoadingScreen';
 import MyLevelsView from './components/MyLevelsView';
 import LevelEditorView from './components/LevelEditor/LevelEditorView';
 import CustomLevelTestView from './components/CustomLevelTestView';
-import CommunityLevelsView from './components/CommunityLevelsView'; // Removed type import
+import CommunityLevelsView from './components/CommunityLevelsView';
 import { Modal } from './components/shared/Modal';
 import { INITIAL_LEVELS } from './data/levels';
 import { fetchDailyPuzzle, getDateKey } from './services/dailyPuzzleService';
@@ -29,19 +28,20 @@ export default function Target2048App() {
     const [testingLevel, setTestingLevel] = useState<CustomLevel | null>(null);
     const [isDarkMode, setIsDarkMode] = useState(false);
 
+    // Dev State
+    const [devPanelOpen, setDevPanelOpen] = useState(false);
+    const [isDevDailyMode, setIsDevDailyMode] = useState(false);
+
     // Modal States
     const [showUsernameModal, setShowUsernameModal] = useState(false);
     const [showNoDailyModal, setShowNoDailyModal] = useState(false);
     const [noDailyDate, setNoDailyDate] = useState('');
 
-    // Removed communityTab state
     const [returnToScreen, setReturnToScreen] = useState<ExtendedAppScreen>('my-levels');
 
     const { user, username, loading: authLoading, ensureSignedIn } = useAuth();
     const pendingAction = useRef<(() => void) | null>(null);
 
-
-    // Helper to check username requirement
     const requireUsername = async (action: () => void) => {
         await ensureSignedIn();
         if (!username) {
@@ -130,6 +130,7 @@ export default function Target2048App() {
         setCurrentLevel(null);
         setEditingLevel(null);
         setTestingLevel(null);
+        setIsDevDailyMode(false); // Reset dev mode
     }, []);
 
     // Username Handlers
@@ -151,9 +152,11 @@ export default function Target2048App() {
     }, [requireUsername]);
 
     const handleCreateNewLevel = () => {
+        setIsDevDailyMode(false);
         setEditingLevel(null);
         setScreen('level-editor');
     };
+
     const handleOpenCommunity = useCallback(async () => {
         requireUsername(() => setScreen('community-levels'));
     }, [ensureSignedIn, username]);
@@ -177,25 +180,55 @@ export default function Target2048App() {
         setScreen('level-editor');
     };
 
+    // --- Dev Daily Flow ---
+    const handleDevCreateDaily = () => {
+        setIsDevDailyMode(true);
+        setEditingLevel(null);
+        setScreen('level-editor');
+        setDevPanelOpen(false); // Close panel to focus on editor
+    };
+
+    const handleDevPublish = (level: CustomLevel) => {
+        // We have the verified level.
+        // We want to open the DevPanel and prep it for publishing.
+        // For simplicity, we just switch back to menu (or stay overlaid) and open panel.
+        setTestingLevel(level); // Keep it referenced so DevPanel can see it via 'currentLevel' prop logic below
+        setScreen('menu'); // Or stay? Let's go menu.
+        setDevPanelOpen(true);
+    };
+
+
     const handlePlayCustomLevel = (level: CustomLevel) => {
         setTestingLevel(level);
         setScreen('test-level');
-        setReturnToScreen('my-levels');
+        setReturnToScreen(isDevDailyMode ? 'level-editor' : 'my-levels'); // Correct return path
     };
 
     const handleBackToMyLevels = () => {
-        setScreen('my-levels');
-        setEditingLevel(null);
-        setTestingLevel(null);
+        if (isDevDailyMode) {
+            setScreen('menu');
+            setIsDevDailyMode(false);
+            setDevPanelOpen(true);
+        } else {
+            setScreen('my-levels');
+            setEditingLevel(null);
+            setTestingLevel(null);
+        }
     };
 
     const handleBackFromTest = useCallback(() => {
-        setScreen(returnToScreen);
-        setTestingLevel(null);
-        if (returnToScreen === 'my-levels') {
-            setEditingLevel(null);
+        if (isDevDailyMode) {
+            setScreen('level-editor');
+            setEditingLevel(testingLevel); // Re-edit same level
+            setTestingLevel(null);
+        } else {
+            setScreen(returnToScreen);
+            setTestingLevel(null);
+            if (returnToScreen === 'my-levels') {
+                setEditingLevel(null);
+            }
         }
-    }, [returnToScreen]);
+    }, [returnToScreen, isDevDailyMode, testingLevel]);
 
     const handleEditFromTest = () => {
         if (testingLevel) {
@@ -241,7 +274,6 @@ export default function Target2048App() {
                                 setScreen('test-level');
                                 setReturnToScreen('community-levels');
                             }}
-                        // Removed activeTab and onTabChange props
                         />
                     )}
 
@@ -259,7 +291,7 @@ export default function Target2048App() {
                             existingLevel={editingLevel}
                             onBack={handleBackToMyLevels}
                             onPlayTest={handlePlayCustomLevel}
-                            saveMode={editingLevel?.section === 'Daily' ? 'export' : 'local'}
+                            saveMode={isDevDailyMode ? 'daily-dev' : (editingLevel?.section === 'Daily' ? 'export' : 'local')}
                         />
                     )}
 
@@ -269,6 +301,8 @@ export default function Target2048App() {
                             onBack={handleBackFromTest}
                             onEdit={handleEditFromTest}
                             onVerified={handleLevelVerified}
+                            isDevDaily={isDevDailyMode}
+                            onPublish={handleDevPublish}
                         />
                     )}
 
@@ -304,10 +338,13 @@ export default function Target2048App() {
 
                 {import.meta.env.DEV && (
                     <DevPanel
+                        isOpen={devPanelOpen}
+                        onToggle={setDevPanelOpen}
                         onJumpToLevel={handleSelectLevel}
                         onPlayDaily={handlePlayDaily}
                         onEditLevel={handleDevEditLevel}
                         currentLevel={currentLevel || testingLevel}
+                        onCreateDaily={handleDevCreateDaily}
                         onVerifyLevel={() => {
                             if (testingLevel) {
                                 setTestingLevel({ ...testingLevel });
