@@ -1,4 +1,4 @@
-// src/components/LevelEditor/index.tsx
+// src/components/LevelEditor/LevelEditorView.tsx
 import React, { useState, useEffect } from 'react';
 import type { CustomLevel, EditorMode, EditorTool, TileCategory } from '../../types/editorTypes';
 import type { Grid, Cell } from '../../types/types';
@@ -7,6 +7,9 @@ import { WALL } from '../../constants/game';
 import { useAuth } from '../../contexts/AuthContext';
 import { saveLevel, generateLevelId } from '../../services/customLevelsStorage';
 import { createEmptyGrid } from '../../game/grid';
+import { AlertTriangle } from 'lucide-react'; // Added icon
+import { Modal } from '../shared/Modal'; // Added Modal
+
 // Sub-components
 import { EditorHeader } from './EditorHeader';
 import { EditorToolbox } from './EditorToolbox';
@@ -51,6 +54,10 @@ const LevelEditorView: React.FC<LevelEditorViewProps> = ({
     const [showProperties, setShowProperties] = useState(false);
     const [copiedCode, setCopiedCode] = useState(false);
 
+    // Dirty State Tracking
+    const [isDirty, setIsDirty] = useState(false);
+    const [showExitModal, setShowExitModal] = useState(false);
+
     // -- Initialization --
     useEffect(() => {
         if (existingLevel) {
@@ -71,11 +78,11 @@ const LevelEditorView: React.FC<LevelEditorViewProps> = ({
             setCols(4);
             setShowProperties(true);
         }
+        setIsDirty(false); // Reset dirty flag on load
     }, [existingLevel]);
 
     // -- Handlers --
 
-    // Smart Resizer (Rectangular Support)
     const handleDimensionsChange = (newRows: number, newCols: number) => {
         if (newRows === rows && newCols === cols) return;
 
@@ -93,6 +100,7 @@ const LevelEditorView: React.FC<LevelEditorViewProps> = ({
         setCols(newCols);
         setGrid(newGrid);
         setThinWalls({ vertical: newVertical, horizontal: newHorizontal });
+        setIsDirty(true);
     };
 
     const handleCategoryChange = (category: TileCategory) => {
@@ -109,6 +117,8 @@ const LevelEditorView: React.FC<LevelEditorViewProps> = ({
 
     const handleCellClick = (r: number, c: number) => {
         if (mode !== 'edit') return;
+
+        setIsDirty(true); // Mark as modified
 
         // Thin Walls
         if (wallMode === 'thin-v') {
@@ -210,6 +220,7 @@ ${gridString}
             thinWalls: (thinWalls.vertical.length > 0 || thinWalls.horizontal.length > 0) ? thinWalls : undefined
         };
         saveLevel(level);
+        setIsDirty(false); // Clear dirty flag
         onBack();
     };
 
@@ -222,13 +233,22 @@ ${gridString}
             target: targetValue,
             grid: grid as any,
             section: 'Custom',
-            createdBy: username,
+            createdBy: userId,
             createdAt: existingLevel?.createdAt || new Date().toISOString(),
             lastModified: new Date().toISOString(),
             isVerified: false,
             thinWalls: (thinWalls.vertical.length > 0 || thinWalls.horizontal.length > 0) ? thinWalls : undefined
         };
         onPlayTest(level);
+    };
+
+    // Intercept Back Button
+    const handleBackRequest = () => {
+        if (isDirty && saveMode === 'local') {
+            setShowExitModal(true);
+        } else {
+            onBack();
+        }
     };
 
     return (
@@ -238,14 +258,14 @@ ${gridString}
                 subtitle={saveMode === 'export' ? "Editing Daily Level (Dev)" : (existingLevel ? "Editing" : "Creating")}
                 saveMode={saveMode}
                 copiedCode={copiedCode}
-                onBack={onBack}
+                onBack={handleBackRequest} // Use interceptor
                 onSettings={() => setShowProperties(true)}
-                onClear={() => { if (confirm('Clear grid?')) setGrid(createEmptyGrid(rows, cols)); }}
+                onClear={() => { if (confirm('Clear grid?')) { setGrid(createEmptyGrid(rows, cols)); setIsDirty(true); } }}
                 onTest={handlePlayTest}
                 onSave={handleSave}
             />
 
-            {/* Main Content: Flex-col-reverse for mobile (Grid on top, Tools bottom) */}
+            {/* Main Content */}
             <div className="flex-1 flex flex-col-reverse md:flex-row gap-4 overflow-y-auto md:overflow-hidden pb-4 custom-scrollbar">
 
                 <EditorToolbox
@@ -276,10 +296,46 @@ ${gridString}
                 levelDescription={levelDescription}
                 onRowsChange={(r) => handleDimensionsChange(r, cols)}
                 onColsChange={(c) => handleDimensionsChange(rows, c)}
-                onTargetChange={setTargetValue}
-                onNameChange={setLevelName}
-                onDescriptionChange={setLevelDescription}
+                onTargetChange={(v) => { setTargetValue(v); setIsDirty(true); }}
+                onNameChange={(v) => { setLevelName(v); setIsDirty(true); }}
+                onDescriptionChange={(v) => { setLevelDescription(v); setIsDirty(true); }}
             />
+
+            {/* Exit Confirmation Modal */}
+            <Modal
+                isOpen={showExitModal}
+                onClose={() => setShowExitModal(false)}
+                title="Unsaved Changes"
+                icon={AlertTriangle}
+                iconColor="text-orange-500"
+                maxWidth="sm"
+            >
+                <div className="p-4">
+                    <p className="text-slate-600 dark:text-slate-300 mb-6">
+                        You have unsaved changes. Do you want to save your level before leaving?
+                    </p>
+                    <div className="flex flex-col gap-3">
+                        <button
+                            onClick={handleSave}
+                            className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition"
+                        >
+                            Save & Exit
+                        </button>
+                        <button
+                            onClick={() => { setShowExitModal(false); onBack(); }}
+                            className="w-full py-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-xl font-bold transition"
+                        >
+                            Discard Changes
+                        </button>
+                        <button
+                            onClick={() => setShowExitModal(false)}
+                            className="w-full py-3 text-slate-500 dark:text-slate-400 font-bold hover:text-slate-700 dark:hover:text-slate-200 transition"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };

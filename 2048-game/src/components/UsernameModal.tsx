@@ -1,14 +1,16 @@
+// src/components/UsernameModal.tsx
 import React, { useState } from 'react';
-import { User, Sparkles, AlertCircle } from 'lucide-react'; // Added AlertCircle
+import { User, Sparkles, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Modal } from './shared/Modal';
-import { checkUsernameExists } from '../services/userService'; // Import the check
+import { checkUsernameExists } from '../services/userService';
 
 interface UsernameModalProps {
-    onClose: () => void;
+    onClose: () => void;   // Called on Cancel/Close X
+    onSuccess: () => void; // Called on successful submission
 }
 
-const UsernameModal: React.FC<UsernameModalProps> = ({ onClose }) => {
+const UsernameModal: React.FC<UsernameModalProps> = ({ onClose, onSuccess }) => {
     const [username, setInputUsername] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -35,7 +37,7 @@ const UsernameModal: React.FC<UsernameModalProps> = ({ onClose }) => {
 
             // 2. Save if unique
             await setUsername(trimmed);
-            onClose();
+            onSuccess(); // Triggers the success action (entering the feature)
         } catch (e) {
             console.error(e);
             setError('Failed to save username. Please try again.');
@@ -47,12 +49,12 @@ const UsernameModal: React.FC<UsernameModalProps> = ({ onClose }) => {
     return (
         <Modal
             isOpen={true}
-            onClose={() => { }} 
+            onClose={onClose} // Allow closing
             title="Choose Username"
             subtitle="Required for Daily Puzzle & Community"
             icon={User}
             maxWidth="sm"
-            showCloseButton={false} 
+            showCloseButton={true} // Enable close button
         >
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div>

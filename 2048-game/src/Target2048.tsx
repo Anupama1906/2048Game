@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react';
 import type { AppScreen, Level } from './types/types';
 import type { CustomLevel } from './types/editorTypes';
+import { Calendar, AlertTriangle } from 'lucide-react'; // Added icons
 import MainMenuView from './components/MainMenuView';
 import UsernameModal from './components/UsernameModal';
 import DailyGameView from './components/DailyGameView';
@@ -10,6 +11,7 @@ import MyLevelsView from './components/MyLevelsView';
 import LevelEditorView from './components/LevelEditor/LevelEditorView';
 import CustomLevelTestView from './components/CustomLevelTestView';
 import CommunityLevelsView, { type CommunityTab } from './components/CommunityLevelsView';
+import { Modal } from './components/shared/Modal'; // Added Modal import
 import { INITIAL_LEVELS } from './data/levels';
 import { fetchDailyPuzzle, getDateKey } from './services/dailyPuzzleService';
 import { useAuth } from './contexts/AuthContext';
@@ -26,7 +28,12 @@ export default function Target2048App() {
     const [editingLevel, setEditingLevel] = useState<CustomLevel | null>(null);
     const [testingLevel, setTestingLevel] = useState<CustomLevel | null>(null);
     const [isDarkMode, setIsDarkMode] = useState(false);
+
+    // Modal States
     const [showUsernameModal, setShowUsernameModal] = useState(false);
+    const [showNoDailyModal, setShowNoDailyModal] = useState(false);
+    const [noDailyDate, setNoDailyDate] = useState('');
+
     const [communityTab, setCommunityTab] = useState<CommunityTab>('played');
     const [returnToScreen, setReturnToScreen] = useState<ExtendedAppScreen>('my-levels');
 
@@ -70,7 +77,8 @@ export default function Target2048App() {
                 const dailyLevel = await fetchDailyPuzzle(dateKey);
 
                 if (!dailyLevel) {
-                    alert(`⚠️ No puzzle available for ${dateKey}.\n\nPlease check back Tomorrow!`);
+                    setNoDailyDate(dateKey);
+                    setShowNoDailyModal(true); // Show modal instead of alert
                     return;
                 }
 
@@ -123,12 +131,18 @@ export default function Target2048App() {
         setTestingLevel(null);
     }, []);
 
-    const handleUsernameSet = () => {
+    // Username Handlers
+    const handleUsernameSuccess = () => {
         setShowUsernameModal(false);
         if (pendingAction.current) {
             pendingAction.current();
             pendingAction.current = null;
         }
+    };
+
+    const handleUsernameClose = () => {
+        setShowUsernameModal(false);
+        pendingAction.current = null; // Discard pending action
     };
 
     const handleOpenMyLevels = useCallback(async () => {
@@ -303,9 +317,38 @@ export default function Target2048App() {
                 )}
             </div>
 
+            {/* Modals */}
             {showUsernameModal && (
-                <UsernameModal onClose={handleUsernameSet} />
+                <UsernameModal
+                    onClose={handleUsernameClose}
+                    onSuccess={handleUsernameSuccess}
+                />
             )}
+
+            <Modal
+                isOpen={showNoDailyModal}
+                onClose={() => setShowNoDailyModal(false)}
+                title="No Puzzle Found"
+                icon={Calendar}
+                iconColor="text-orange-500"
+                maxWidth="sm"
+            >
+                <div className="p-6 text-center">
+                    <AlertTriangle size={48} className="mx-auto text-orange-400 mb-4 opacity-50" />
+                    <p className="text-lg font-medium text-slate-800 dark:text-white mb-2">
+                        No puzzle available for {noDailyDate}
+                    </p>
+                    <p className="text-slate-500 dark:text-slate-400 mb-6">
+                        Please check back tomorrow for a new challenge!
+                    </p>
+                    <button
+                        onClick={() => setShowNoDailyModal(false)}
+                        className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white rounded-xl font-bold transition"
+                    >
+                        Okay, I'll wait
+                    </button>
+                </div>
+            </Modal>
         </div>
     );
 }
