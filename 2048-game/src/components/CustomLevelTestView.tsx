@@ -13,8 +13,8 @@ interface CustomLevelTestViewProps {
     onBack: () => void;
     onEdit: () => void;
     onVerified: () => void;
-    isDevDaily?: boolean;      // New Prop
-    onPublish?: (level: CustomLevel) => void; // New Prop
+    isDevDaily?: boolean;
+    onPublish?: (level: CustomLevel) => void;
 }
 
 const CustomLevelTestView: React.FC<CustomLevelTestViewProps> = ({
@@ -27,6 +27,7 @@ const CustomLevelTestView: React.FC<CustomLevelTestViewProps> = ({
 }) => {
     const { username } = useAuth();
     const [isWon, setIsWon] = useState(false);
+    const [moves, setMoves] = useState(0);
     const hasVerified = useRef(false);
 
     // Sharing State
@@ -34,8 +35,9 @@ const CustomLevelTestView: React.FC<CustomLevelTestViewProps> = ({
     const [isSharing, setIsSharing] = useState(false);
     const [copied, setCopied] = useState(false);
 
-    const handleWin = (moves: number) => {
+    const handleWin = (winMoves: number) => {
         setIsWon(true);
+        setMoves(winMoves);
 
         // Standard verification flow
         if (!hasVerified.current && !level.isVerified && !isDevDaily) {
@@ -189,7 +191,7 @@ const CustomLevelTestView: React.FC<CustomLevelTestViewProps> = ({
 
             winOverlay={
                 <WinOverlay
-                    moves={0}
+                    moves={moves}
                     title={isDevDaily ? "Verified!" : (!level.isVerified ? "Level Verified!" : "Solved!")}
                     additionalContent={<VerificationSuccessContent />}
                 />

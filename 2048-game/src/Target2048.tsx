@@ -1,3 +1,4 @@
+// src/Target2048.tsx
 import { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react';
 import type { AppScreen, Level } from './types/types';
 import type { CustomLevel } from './types/editorTypes';
@@ -12,7 +13,7 @@ import CustomLevelTestView from './components/CustomLevelTestView';
 import CommunityLevelsView from './components/CommunityLevelsView';
 import { Modal } from './components/shared/Modal';
 import { INITIAL_LEVELS } from './data/levels';
-import { fetchDailyPuzzle, getDateKey } from './services/dailyPuzzleService';
+import { fetchDailyPuzzle, getDateKey, publishDailyPuzzle, hasPuzzleForDate } from './services/dailyPuzzleService';
 import { useAuth } from './contexts/AuthContext';
 import GameView from './components/GameView';
 import DevPanel from './components/DevPanel';
@@ -26,11 +27,18 @@ export default function Target2048App() {
     const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
     const [editingLevel, setEditingLevel] = useState<CustomLevel | null>(null);
     const [testingLevel, setTestingLevel] = useState<CustomLevel | null>(null);
-    const [isDarkMode, setIsDarkMode] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        const saved = localStorage.getItem('target2048_theme');
+        if (saved) {
+            try { return JSON.parse(saved); } catch (e) { return false; }
+        }
+        return false;
+    });
 
     // Dev State
     const [devPanelOpen, setDevPanelOpen] = useState(false);
     const [isDevDailyMode, setIsDevDailyMode] = useState(false);
+    const [devDailyDate, setDevDailyDate] = useState<string>('');
 
     // Modal States
     const [showUsernameModal, setShowUsernameModal] = useState(false);
@@ -130,7 +138,7 @@ export default function Target2048App() {
         setCurrentLevel(null);
         setEditingLevel(null);
         setTestingLevel(null);
-        setIsDevDailyMode(false); // Reset dev mode
+        setIsDevDailyMode(false);
     }, []);
 
     // Username Handlers
@@ -181,27 +189,48 @@ export default function Target2048App() {
     };
 
     // --- Dev Daily Flow ---
-    const handleDevCreateDaily = () => {
+    const handleDevCreateDaily = (date: string) => {
         setIsDevDailyMode(true);
+        setDevDailyDate(date);
         setEditingLevel(null);
         setScreen('level-editor');
-        setDevPanelOpen(false); // Close panel to focus on editor
     };
 
-    const handleDevPublish = (level: CustomLevel) => {
-        // We have the verified level.
-        // We want to open the DevPanel and prep it for publishing.
-        // For simplicity, we just switch back to menu (or stay overlaid) and open panel.
-        setTestingLevel(level); // Keep it referenced so DevPanel can see it via 'currentLevel' prop logic below
-        setScreen('menu'); // Or stay? Let's go menu.
-        setDevPanelOpen(true);
-    };
+    const handleDevPublishAction = async (level: CustomLevel) => {
+        if (!devDailyDate) {
+            alert("No date selected for publication.");
+            return;
+        }
 
+        const dateKey = getDateKey(new Date(devDailyDate));
+
+        try {
+            const exists = await hasPuzzleForDate(dateKey);
+            if (exists) {
+                const confirm = window.confirm(
+                    `⚠️ A puzzle already exists for ${devDailyDate}.\nDo you want to OVERWRITE it?`
+                );
+                if (!confirm) return;
+            }
+
+            await publishDailyPuzzle(level, dateKey);
+            alert(`✅ Successfully published daily puzzle for ${devDailyDate}!`);
+
+            // Cleanup and return to menu/panel
+            setScreen('menu');
+            setIsDevDailyMode(false);
+            setTestingLevel(null);
+            setDevPanelOpen(true); // Re-open panel so they can see it in the list
+        } catch (error) {
+            console.error("Publish failed:", error);
+            alert("Failed to publish daily puzzle. Check console.");
+        }
+    };
 
     const handlePlayCustomLevel = (level: CustomLevel) => {
         setTestingLevel(level);
         setScreen('test-level');
-        setReturnToScreen(isDevDailyMode ? 'level-editor' : 'my-levels'); // Correct return path
+        setReturnToScreen(isDevDailyMode ? 'level-editor' : 'my-levels');
     };
 
     const handleBackToMyLevels = () => {
@@ -302,7 +331,7 @@ export default function Target2048App() {
                             onEdit={handleEditFromTest}
                             onVerified={handleLevelVerified}
                             isDevDaily={isDevDailyMode}
-                            onPublish={handleDevPublish}
+                            onPublish={handleDevPublishAction}
                         />
                     )}
 
@@ -345,11 +374,6 @@ export default function Target2048App() {
                         onEditLevel={handleDevEditLevel}
                         currentLevel={currentLevel || testingLevel}
                         onCreateDaily={handleDevCreateDaily}
-                        onVerifyLevel={() => {
-                            if (testingLevel) {
-                                setTestingLevel({ ...testingLevel });
-                            }
-                        }}
                     />
                 )}
             </div>

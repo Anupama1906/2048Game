@@ -1,26 +1,22 @@
 // src/components/DevPanel.tsx
 import React, { useState, useEffect } from 'react';
-import { Settings, Calendar, X, Trash2, Edit2, Upload, PlusCircle } from 'lucide-react';
+import { Settings, Calendar, X, Trash2, Edit2, PlusCircle } from 'lucide-react';
 import type { Level } from '../types/types';
 import type { CustomLevel } from '../types/editorTypes';
 import {
-    publishDailyPuzzle,
     getAllScheduledPuzzles,
     deleteDailyPuzzle,
     fetchDailyPuzzle,
-    hasPuzzleForDate,
     getDateKey,
     cleanupOldPuzzles
 } from '../services/dailyPuzzleService';
-import { saveLevel } from '../services/customLevelsStorage';
 
 interface DevPanelProps {
     onJumpToLevel: (level: Level) => void;
     onPlayDaily: (date: string) => void;
     onEditLevel: (level: Level) => void;
     currentLevel?: Level | CustomLevel | null;
-    onVerifyLevel?: () => void;
-    onCreateDaily: () => void;
+    onCreateDaily: (date: string) => void;
     isOpen?: boolean;
     onToggle?: (isOpen: boolean) => void;
 }
@@ -36,7 +32,6 @@ const DevPanel: React.FC<DevPanelProps> = ({
     onPlayDaily,
     onEditLevel,
     currentLevel,
-    onVerifyLevel,
     onCreateDaily,
     isOpen: controlledIsOpen,
     onToggle
@@ -50,7 +45,6 @@ const DevPanel: React.FC<DevPanelProps> = ({
     // Daily Puzzle State
     const [scheduledPuzzles, setScheduledPuzzles] = useState<ScheduledPuzzle[]>([]);
     const [loading, setLoading] = useState(false);
-    const [publishMessage, setPublishMessage] = useState('');
 
     const handleVisibilityChange = (open: boolean) => {
         setInternalIsOpen(open);
@@ -82,37 +76,11 @@ const DevPanel: React.FC<DevPanelProps> = ({
         handleVisibilityChange(false);
     };
 
-    const handlePublishCurrentLevel = async () => {
-        if (!currentLevel) {
-            alert('No level is currently loaded');
-            return;
-        }
-
-        const dateKey = getDateKey(new Date(selectedDate));
-        const exists = await hasPuzzleForDate(dateKey);
-
-        if (exists) {
-            const confirm = window.confirm(
-                `⚠️ A puzzle already exists for ${selectedDate}.\nDo you want to OVERWRITE it?`
-            );
-            if (!confirm) return;
-        }
-
-        setLoading(true);
-        setPublishMessage('');
-
-        try {
-            await publishDailyPuzzle(currentLevel, dateKey);
-            setPublishMessage(`✅ Published to ${selectedDate}`);
-            await loadScheduledPuzzles();
-
-            setTimeout(() => setPublishMessage(''), 3000);
-        } catch (error) {
-            console.error('Publish failed:', error);
-            alert('Failed to publish. Check console for details.');
-        } finally {
-            setLoading(false);
-        }
+    const handleCreateDailyLevel = () => {
+        onCreateDaily(selectedDate);
+        // We don't close the panel immediately or we can, depends on preference. 
+        // Usually better to close it so user sees the editor.
+        handleVisibilityChange(false);
     };
 
     const handleEditDailyPuzzle = async (dateKey: string) => {
@@ -209,16 +177,7 @@ const DevPanel: React.FC<DevPanelProps> = ({
                             {activeTab === 'daily' && (
                                 <div className="space-y-6">
 
-                                    {/* Create New Daily Level Action */}
-                                    <button
-                                        onClick={onCreateDaily}
-                                        className="w-full py-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-3 transition transform hover:scale-[1.02]"
-                                    >
-                                        <PlusCircle size={24} />
-                                        Create New Daily Level
-                                    </button>
-
-                                    {/* Date Picker & Publish Actions */}
+                                    {/* Date Picker & Create Action */}
                                     <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-5 rounded-xl border-2 border-purple-200 dark:border-purple-800">
                                         <label className="block text-sm font-bold text-purple-700 dark:text-purple-300 mb-3">
                                             📅 Select Release Date
@@ -237,26 +196,15 @@ const DevPanel: React.FC<DevPanelProps> = ({
                                             >
                                                 🎮 Test Date
                                             </button>
+
                                             <button
-                                                onClick={handlePublishCurrentLevel}
-                                                disabled={!currentLevel || loading}
-                                                className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-slate-400 text-white rounded-lg font-semibold transition flex items-center justify-center gap-2"
+                                                onClick={handleCreateDailyLevel}
+                                                className="flex-[2] py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-bold shadow-lg flex items-center justify-center gap-2 transition"
                                             >
-                                                {loading ? (
-                                                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-                                                ) : (
-                                                    <>
-                                                        <Upload size={18} /> Publish Current
-                                                    </>
-                                                )}
+                                                <PlusCircle size={18} />
+                                                Create Daily Level
                                             </button>
                                         </div>
-
-                                        {publishMessage && (
-                                            <div className="mt-3 p-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm text-center font-semibold">
-                                                {publishMessage}
-                                            </div>
-                                        )}
                                     </div>
 
                                     {/* Scheduled Puzzles List */}

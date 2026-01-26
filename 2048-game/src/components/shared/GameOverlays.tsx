@@ -6,7 +6,7 @@ import { formatTime } from '../../utils/formatters';
 interface WinOverlayProps {
     moves: number;
     time?: number;
-    title?: string; // Added title prop
+    title?: string; 
     onContinue?: () => void;
     onRetry?: () => void;
     continueLabel?: string;
@@ -16,7 +16,7 @@ interface WinOverlayProps {
 export const WinOverlay: React.FC<WinOverlayProps> = ({
     moves,
     time,
-    title = 'Solved!', // Default to 'Solved!' if not provided
+    title = 'Solved!', 
     onContinue,
     onRetry,
     continueLabel = 'Next Level',

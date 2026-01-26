@@ -2,7 +2,7 @@
 import React from 'react';
 import type { Level } from '../types/types';
 import { WinOverlay, LostOverlay } from './shared/GameOverlays';
-import { GameController } from './shared/GameController'; 
+import { GameController } from './shared/GameController';
 
 interface GameViewProps {
     level: Level;
@@ -19,12 +19,15 @@ const GameView: React.FC<GameViewProps> = ({
     onLevelWon,
     onComplete
 }) => {
+    const [moves, setMoves] = React.useState(0);
+
     return (
         <GameController
             level={level}
             onBack={onBack}
+            onMove={(currentMoves) => setMoves(currentMoves)}
             onWin={onLevelWon} // Handled automatically by controller now
-            
+
             headerExtra={
                 <div className="text-right">
                     <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Best</div>
@@ -33,10 +36,10 @@ const GameView: React.FC<GameViewProps> = ({
                     </div>
                 </div>
             }
-            
-            winOverlay={<WinOverlay moves={0} onContinue={onComplete} />} 
 
-            lostOverlay={<LostOverlay onUndo={() => {}} onRetry={() => {}} />} 
+            winOverlay={<WinOverlay moves={moves} onContinue={onComplete} />}
+
+            lostOverlay={<LostOverlay onUndo={() => { }} onRetry={() => { }} />}
         />
     );
 };

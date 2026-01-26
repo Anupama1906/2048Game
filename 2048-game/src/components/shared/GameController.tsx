@@ -9,7 +9,6 @@ import { GameBoard } from './GameBoard';
 interface GameControllerProps {
     level: Level;
     onBack: () => void;
-    // Callbacks for game events
     onWin?: (moves: number) => void;
     onLoss?: () => void;
     onMove?: (moves: number, gameState: string) => void;
@@ -40,7 +39,6 @@ export const GameController: React.FC<GameControllerProps> = ({
     const touchHandlers = useTouchGestures(move);
 
     // 3. Handle Game Events
-    // We use refs to prevent running effects on every render, only when state changes
     const prevGameState = useRef(gameState);
     const prevMoves = useRef(moves);
 

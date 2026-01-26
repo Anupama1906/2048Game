@@ -49,12 +49,12 @@ const UsernameModal: React.FC<UsernameModalProps> = ({ onClose, onSuccess }) => 
     return (
         <Modal
             isOpen={true}
-            onClose={onClose} // Allow closing
+            onClose={onClose}
             title="Choose Username"
             subtitle="Required for Daily Puzzle & Community"
             icon={User}
             maxWidth="sm"
-            showCloseButton={true} // Enable close button
+            showCloseButton={true}
         >
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div>
@@ -71,13 +71,14 @@ const UsernameModal: React.FC<UsernameModalProps> = ({ onClose, onSuccess }) => 
                             className={`w-full px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-900 border-2 outline-none transition
                                 ${error
                                     ? 'border-red-500 focus:border-red-500 text-red-600'
-                                    : 'border-slate-200 dark:border-slate-700 focus:border-indigo-500'
+                                    : 'border-slate-200 dark:border-slate-800 dark:text-white focus:border-indigo-500'
                                 }`}
                         />
                         {loading && (
                             <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                 <div className="animate-spin h-5 w-5 border-2 border-indigo-500 border-t-transparent rounded-full" />
                             </div>
+
                         )}
                     </div>
                     {error && (

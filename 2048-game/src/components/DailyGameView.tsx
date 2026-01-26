@@ -6,8 +6,8 @@ import { submitDailyScore, hasUserSubmitted } from '../services/leaderboardServi
 import { formatTime } from '../utils/formatters';
 import LeaderboardModal from './LeaderboardModal';
 import { WinOverlay, LostOverlay } from './shared/GameOverlays';
-import { GameController } from './shared/GameController'; 
-import { useDailyTimer } from '../hooks/useDailyTimer'; 
+import { GameController } from './shared/GameController';
+import { useDailyTimer } from '../hooks/useDailyTimer';
 
 interface DailyGameViewProps {
     level: Level;
@@ -20,6 +20,7 @@ const DailyGameView: React.FC<DailyGameViewProps> = ({ level, onBack }) => {
     const [hasSubmitted, setHasSubmitted] = useState(false);
     const [alreadySubmitted, setAlreadySubmitted] = useState(false);
     const [showLeaderboard, setShowLeaderboard] = useState(false);
+    const [moves, setMoves] = useState(0);
 
     // 2. Custom Hooks
     // Extracted logic handles timer & persistence automatically
@@ -33,9 +34,10 @@ const DailyGameView: React.FC<DailyGameViewProps> = ({ level, onBack }) => {
     }, [user, level.id]);
 
     // 4. Event Handlers
-    const handleGameMove = (moves: number, gameState: string) => {
+    const handleGameMove = (currentMoves: number, gameState: string) => {
+        setMoves(currentMoves);
         // Start timer on first move
-        if (moves > 0 && gameState === 'playing') setIsRunning(true);
+        if (currentMoves > 0 && gameState === 'playing') setIsRunning(true);
         // Stop timer if game ends (redundant but safe)
         if (gameState !== 'playing') setIsRunning(false);
     };
@@ -91,7 +93,7 @@ const DailyGameView: React.FC<DailyGameViewProps> = ({ level, onBack }) => {
                 // Custom Win Overlay
                 winOverlay={
                     <WinOverlay
-                        moves={0} // Passed as 0, GameController handles standard display, but we are customizing content anyway
+                        moves={moves}
                         title={alreadySubmitted ? "Good Job!" : "Puzzle Solved!"}
                         additionalContent={
                             <div className="flex flex-col gap-3 mt-4 w-full max-w-xs">
