@@ -66,8 +66,8 @@ export const LevelPropertiesModal: React.FC<LevelPropertiesModalProps> = ({
                                     key={`r-${size}`}
                                     onClick={() => onRowsChange(size)}
                                     className={`flex-1 py-2 rounded-lg border-2 font-bold text-sm transition ${rows === size
-                                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
-                                            : 'border-slate-200 dark:border-slate-700 text-slate-500'
+                                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
+                                        : 'border-slate-200 dark:border-slate-700 text-slate-500'
                                         }`}
                                 >
                                     {size}
@@ -85,8 +85,8 @@ export const LevelPropertiesModal: React.FC<LevelPropertiesModalProps> = ({
                                     key={`c-${size}`}
                                     onClick={() => onColsChange(size)}
                                     className={`flex-1 py-2 rounded-lg border-2 font-bold text-sm transition ${cols === size
-                                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
-                                            : 'border-slate-200 dark:border-slate-700 text-slate-500'
+                                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
+                                        : 'border-slate-200 dark:border-slate-700 text-slate-500'
                                         }`}
                                 >
                                     {size}
@@ -107,8 +107,8 @@ export const LevelPropertiesModal: React.FC<LevelPropertiesModalProps> = ({
                             <button
                                 onClick={() => handleSignChange(1)}
                                 className={`p-2 rounded-lg transition ${sign === 1
-                                        ? 'bg-white dark:bg-slate-700 shadow-sm text-green-600 dark:text-green-400'
-                                        : 'text-slate-400 hover:text-slate-600'
+                                    ? 'bg-white dark:bg-slate-700 shadow-sm text-green-600 dark:text-green-400'
+                                    : 'text-slate-400 hover:text-slate-600'
                                     }`}
                                 title="Positive"
                             >
@@ -117,8 +117,8 @@ export const LevelPropertiesModal: React.FC<LevelPropertiesModalProps> = ({
                             <button
                                 onClick={() => handleSignChange(-1)}
                                 className={`p-2 rounded-lg transition ${sign === -1
-                                        ? 'bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400'
-                                        : 'text-slate-400 hover:text-slate-600'
+                                    ? 'bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400'
+                                    : 'text-slate-400 hover:text-slate-600'
                                     }`}
                                 title="Negative"
                             >
@@ -133,16 +133,16 @@ export const LevelPropertiesModal: React.FC<LevelPropertiesModalProps> = ({
                                 onChange={(e) => handleValueChange(Number(e.target.value))}
                                 className={`w-full h-full px-4 rounded-xl border-2 outline-none font-bold appearance-none text-center cursor-pointer transition
                                     ${sign === 1
-                                        ? 'bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300 focus:border-orange-500'
-                                        : 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 focus:border-blue-500'
+                                        ? 'bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-700 text-orange-700 dark:text-orange-200 focus:border-orange-500'
+                                        : 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-200 focus:border-blue-500'
                                     }`}
                             >
                                 {[2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048].map(v => (
-                                    <option key={v} value={v}>{v}</option>
+                                    <option key={v} value={v} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">{v}</option>
                                 ))}
                             </select>
                             {/* Custom Arrow for better styling control */}
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
+                            <div className={`absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50 ${sign === 1 ? 'text-orange-700 dark:text-orange-200' : 'text-blue-700 dark:text-blue-200'}`}>
                                 ▼
                             </div>
                         </div>
